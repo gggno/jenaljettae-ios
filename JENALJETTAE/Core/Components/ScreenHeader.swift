@@ -23,20 +23,14 @@ struct ScreenHeader: View {
 
                 if let onAdd {
                     Button(action: onAdd) {
-                        HStack(spacing: AppSpacing.xSmall) {
-                            Image(AppIcon.add)
-                                .renderingMode(.template)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 20, height: 20)
-
-                            Text("추가")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .foregroundStyle(AppColor.onPrimary)
-                        .padding(.horizontal, AppSpacing.small)
-                        .frame(minHeight: 48)
-                        .background(AppColor.primary, in: RoundedRectangle(cornerRadius: 14))
+                        Image(AppIcon.add)
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .frame(width: 48, height: 48, alignment: .trailing)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("항목 추가")
