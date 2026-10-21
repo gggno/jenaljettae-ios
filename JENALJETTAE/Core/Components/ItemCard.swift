@@ -1,5 +1,11 @@
-
 import SwiftUI
+
+// MARK: - Item Card Mode
+
+enum ItemCardMode {
+    case record
+    case typeSelection
+}
 
 // MARK: - Item Card
 
@@ -9,6 +15,7 @@ struct ItemCard: View {
     let iconName: String
     let statusLabel: String
     var statusTone: StatusBadgeTone = .neutral
+    var mode: ItemCardMode = .record
     let onTap: () -> Void
 
     var body: some View {
@@ -17,7 +24,6 @@ struct ItemCard: View {
 
                 // MARK: - Item Icon
 
-                // Assets.xcassets에 등록한 공통 벡터 아이콘 사용
                 Image(iconName)
                     .renderingMode(.template)
                     .resizable()
@@ -45,9 +51,21 @@ struct ItemCard: View {
 
                 Spacer(minLength: AppSpacing.xSmall)
 
-                // MARK: - Status Badge
+                // MARK: - Right Accessory
 
-                StatusBadge(label: statusLabel, tone: statusTone)
+                switch mode {
+                case .record:
+                    StatusBadge(label: statusLabel, tone: statusTone)
+
+                case .typeSelection:
+                    Image("ic_jnt_chevron_right")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(width: 16, height: 16)
+                        .accessibilityHidden(true)
+                }
             }
             .padding(AppSpacing.medium)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -83,6 +101,16 @@ private struct ItemCardPreview: View {
                 statusLabel: "예정"
             ) {
                 print("ItemCard - 예약 카드 클릭")
+            }
+
+            ItemCard(
+                title: "쿠폰·기프티콘",
+                subtitle: "상품 교환권, 할인 쿠폰",
+                iconName: "ic_jnt_coupon",
+                statusLabel: "",
+                mode: .typeSelection
+            ) {
+                print("ItemCard - 유형 선택")
             }
         }
         .padding(.horizontal, AppSpacing.screenHorizontal)

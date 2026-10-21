@@ -20,21 +20,27 @@ struct ScreenHeader: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 Spacer()
-
+                
                 if let onAdd {
-                    Button(action: onAdd) {
-                        Image(AppIcon.add)
-                            .renderingMode(.template)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24)
-                            .foregroundStyle(AppColor.textPrimary)
-                            .frame(width: 48, height: 48, alignment: .trailing)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("항목 추가")
+                    Image(AppIcon.add)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .frame(width: 48, alignment: .trailing)
+                        .accessibilityHidden(true)
+                        .overlay(alignment: .bottomTrailing) {
+                            Button(action: onAdd) {
+                                Color.clear
+                                    .frame(width: 48, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("항목 추가")
+                        }
                 }
+
             }
 
             if let subtitle {
@@ -45,6 +51,5 @@ struct ScreenHeader: View {
         }
         .padding(.horizontal, AppSpacing.screenHorizontal)
         .padding(.top, AppSpacing.medium)
-        .padding(.bottom, AppSpacing.large)
     }
 }
