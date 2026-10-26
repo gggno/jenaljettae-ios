@@ -97,7 +97,7 @@ private struct ItemCardPreview: View {
             ItemCard(
                 title: "헤어 커트 예약",
                 subtitle: "예약 · 10.21 15:00",
-                iconName: "ic_jnt_reservation",
+                iconName: "ic_jnt_schedule",
                 statusLabel: "예정"
             ) {
                 print("ItemCard - 예약 카드 클릭")

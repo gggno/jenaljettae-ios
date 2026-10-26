@@ -14,7 +14,7 @@ enum ItemTypeFilter: CaseIterable {
     case coupon
     case pass
     case subscription
-    case reservation
+    case schedule
 
     var title: String {
         switch self {
@@ -22,7 +22,7 @@ enum ItemTypeFilter: CaseIterable {
         case .coupon: return "쿠폰"
         case .pass: return "이용권"
         case .subscription: return "구독"
-        case .reservation: return "예약"
+        case .schedule: return "일정"
         }
     }
 }
@@ -35,7 +35,7 @@ struct TypeFilter: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.xxSmall) {
+            HStack(spacing: AppSpacing.xSmall) {
                 ForEach(ItemTypeFilter.allCases, id: \.self) { type in
                     let isSelected = selectedType == type
 
@@ -47,7 +47,7 @@ struct TypeFilter: View {
                             .foregroundStyle(isSelected ? AppColor.onPrimary : AppColor.textSecondary)
                             .padding(.horizontal, AppSpacing.small)
                             .padding(.vertical, AppSpacing.xSmall)
-                            .background(isSelected ? AppColor.primary : AppColor.inputSurface, in: Capsule())
+                            .background(isSelected ? AppColor.primary : AppColor.inputSurface, in: RoundedRectangle(cornerRadius: 10))
                             .frame(minHeight: 44)
                             .contentShape(Rectangle())
                     }

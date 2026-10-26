@@ -20,7 +20,7 @@ enum AppIcon {
     static let coupon = "ic_jnt_coupon"
     static let pass = "ic_jnt_pass"
     static let subscription = "ic_jnt_subscription"
-    static let reservation = "ic_jnt_reservation"
+    static let schedule = "ic_jnt_schedule"
 
     // MARK: - Actions
     static let add = "ic_jnt_add"

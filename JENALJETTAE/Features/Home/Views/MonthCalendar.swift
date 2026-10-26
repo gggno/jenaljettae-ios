@@ -150,7 +150,10 @@ struct MonthCalendar: View {
             monthButton(icon: "ic_jnt_chevron_left", label: "이전 달", offset: -1)
             monthButton(icon: "ic_jnt_chevron_right", label: "다음 달", offset: 1)
 
-            Button(action: onToday) {
+            Button {
+                UISelectionFeedbackGenerator().selectionChanged()
+                onToday()
+            } label: {
                 Text("오늘")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppColor.primaryForeground)
