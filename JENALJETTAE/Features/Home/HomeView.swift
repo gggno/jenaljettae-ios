@@ -7,26 +7,32 @@
 
 import SwiftUI
 
-// MARK: - Home View | UI 표시 및 사용자 입력을 ViewModel에 전달
+// MARK: - Home View | 홈 달력 표시 및 일정 관리
 struct HomeView: View {
     @StateObject private var viewModel: HomeViewModel
 
-    // MARK: - Dependency Injection | 외부에서 전달한 Repository로 ViewModel 생성
-    init(repository: any ManagedItemRepository) {
-        _viewModel = StateObject(wrappedValue: HomeViewModel(repository: repository))
-    }
+    private let repository: any ManagedItemRepository
+
     @State private var showsRegistrationTypeSelection = false
     @State private var showsSampleDetail = false
 
+    // MARK: - Dependency Injection | Repository로 홈 ViewModel 생성
+    init(repository: any ManagedItemRepository) {
+        self.repository = repository
+        _viewModel = StateObject(wrappedValue: HomeViewModel(repository: repository))
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: - Type Filter | 선택한 카테고리를 ViewModel에 반영
-            TypeFilter(selectedType: viewModel.selectedType, onSelect: { viewModel.selectedType = $0 })
+            // MARK: - Type Filter | 선택 유형에 맞게 달력 및 목록 갱신
+            TypeFilter(
+                selectedType: viewModel.selectedType,
+                onSelect: { viewModel.selectedType = $0 }
+            )
 
             ScrollView {
                 VStack(spacing: AppSpacing.sectionSpacing) {
-                    
-                    // MARK: - Month Calendar | ViewModel의 일정과 날짜 이동 기능 연결
+                    // MARK: - Month Calendar | 월 이동 및 날짜 선택 연결
                     MonthCalendar(
                         visibleMonth: viewModel.visibleMonth,
                         selectedDate: viewModel.selectedDate,
@@ -39,7 +45,7 @@ struct HomeView: View {
                     )
                     .padding(.horizontal, AppSpacing.screenHorizontal)
 
-                    // MARK: - Selected Date Events | 선택 날짜에 해당하는 일정만 표시
+                    // MARK: - Selected Date Events | 선택 날짜의 일정 목록 표시
                     SelectedDateEventsView(
                         selectedDate: viewModel.selectedDate,
                         events: viewModel.filteredEvents,
@@ -56,6 +62,8 @@ struct HomeView: View {
         .modifier(HomeScrollEdgeStyle())
         .navigationTitle("홈")
         .modifier(HomeNavigationTitleStyle())
+
+        // MARK: - Add Toolbar | iOS 버전에 맞춰 추가 버튼 배치
         .toolbar {
             if #available(iOS 27.1, *) {
                 ToolbarItem(placement: .topBarPinnedTrailing) {
@@ -63,7 +71,6 @@ struct HomeView: View {
                 }
                 .axisBehavior(.verticalPreferred)
                 .visibilityPriority(.high)
-            
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
                     addToolbarButton
@@ -71,22 +78,32 @@ struct HomeView: View {
             }
         }
 
-        // MARK: - Registration | + 버튼 클릭 시 등록 유형 선택 화면 열기
+        // MARK: - Registration | 쿠폰 저장 기능과 완료 처리를 Environment에 등록
         .fullScreenCover(isPresented: $showsRegistrationTypeSelection) {
             NavigationStack {
                 RegistrationTypeSelectionView()
             }
+            .environment(\.saveCouponUseCase, SaveCouponUseCase(repository: repository))
+            .environment(\.onCouponSaved, { savedItem in
+                viewModel.reload()
+
+                if let expiryDate = savedItem.endDate {
+                    viewModel.pickDate(expiryDate)
+                }
+
+                showsRegistrationTypeSelection = false
+            })
         }
 
-        // MARK: - Alert | 상세 기능 구현 전 임시 안내 표시
+        // MARK: - Detail Alert | 상세 화면 구현 전 임시 안내
         .alert("일정 상세 화면 준비 중", isPresented: $showsSampleDetail) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text("현재는 UI 확인용 예시 일정이에요.")
+            Text("상세 화면은 아직 준비 중이에요.")
         }
     }
 
-    // MARK: - Add Toolbar Button | 기존 등록 화면 이동 기능 유지
+    // MARK: - Add Toolbar Button | 등록 유형 선택 화면 열기
     private var addToolbarButton: some View {
         Button {
             showsRegistrationTypeSelection = true
@@ -97,7 +114,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Navigation Title Style | iOS 버전에 맞는 제목 표시 방식 적용
+// MARK: - Navigation Title Style | iOS 버전에 맞는 제목 표시 방식
 private struct HomeNavigationTitleStyle: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -109,7 +126,7 @@ private struct HomeNavigationTitleStyle: ViewModifier {
     }
 }
 
-// MARK: - Scroll Edge Style | iOS 26 이상에서 기존 상단 효과 숨김 유지
+// MARK: - Scroll Edge Style | iOS 26 이상 상단 스크롤 효과 제거
 private struct HomeScrollEdgeStyle: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -121,7 +138,7 @@ private struct HomeScrollEdgeStyle: ViewModifier {
     }
 }
 
-// MARK: - Preview | 네비게이션 타이틀과 툴바 포함 확인
+// MARK: - Preview | 홈 화면 미리보기
 #Preview {
     NavigationStack {
         HomeView(repository: SampleManagedItemRepository())

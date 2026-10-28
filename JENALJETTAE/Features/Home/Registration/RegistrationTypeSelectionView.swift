@@ -7,11 +7,10 @@
 
 import SwiftUI
 
-// MARK: - Registration Type Selection | 등록할 항목의 유형 선택 화면
+// MARK: - Registration Type Selection | 등록할 항목 유형 선택 화면
 struct RegistrationTypeSelectionView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // MARK: - State | 안내창 및 쿠폰 등록 화면 이동 상태 관리
     @State private var showsNextStepNotice = false
     @State private var selectedTypeName = ""
     @State private var showsCouponRegistrationMethod = false
@@ -19,8 +18,7 @@ struct RegistrationTypeSelectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.sectionSpacing) {
-
-                // MARK: - Description | 유형 선택 안내 문구
+                // MARK: - Description | 등록 유형 선택 안내
                 VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                     Text("무엇을 보관할까요?")
                         .font(.title2.weight(.bold))
@@ -31,9 +29,8 @@ struct RegistrationTypeSelectionView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
-                // MARK: - Type Selection Cards | 등록 유형별 선택 카드
+                // MARK: - Type Selection Cards | 유형 선택 및 화면 이동
                 VStack(spacing: AppSpacing.cardSpacing) {
-                    // 쿠폰 선택 시 등록 방법 화면으로 이동
                     ItemCard(
                         title: "쿠폰·기프티콘",
                         subtitle: "상품 교환권, 할인 쿠폰",
@@ -87,12 +84,12 @@ struct RegistrationTypeSelectionView: View {
         .navigationTitle("유형 선택")
         .navigationBarTitleDisplayMode(.inline)
 
-        // MARK: - Navigation | 쿠폰 등록 방법 화면으로 이동
+        // MARK: - Coupon Registration | 쿠폰 선택 시 등록 방법 화면으로 이동
         .navigationDestination(isPresented: $showsCouponRegistrationMethod) {
             CouponRegistrationMethodView()
         }
 
-        // MARK: - Toolbar | X 버튼 클릭 시 등록 화면 닫기
+        // MARK: - Toolbar | 닫기 버튼으로 등록 화면 종료
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -105,7 +102,7 @@ struct RegistrationTypeSelectionView: View {
             }
         }
 
-        // MARK: - Alert | 미구현 등록 유형 선택 시 안내창 표시
+        // MARK: - Alert | 미구현 등록 유형 선택 시 안내
         .alert("등록 화면 준비 중", isPresented: $showsNextStepNotice) {
             Button("확인", role: .cancel) {}
         } message: {
@@ -113,7 +110,7 @@ struct RegistrationTypeSelectionView: View {
         }
     }
 
-    // MARK: - Type Card | 미구현 유형의 공통 카드 생성 및 안내창 표시
+    // MARK: - Type Card | 미구현 유형 선택 시 안내창 표시
     private func typeCard(title: String, subtitle: String, iconName: String) -> some View {
         ItemCard(
             title: title,
@@ -125,12 +122,5 @@ struct RegistrationTypeSelectionView: View {
             selectedTypeName = title
             showsNextStepNotice = true
         }
-    }
-}
-
-// MARK: - Preview | 유형 선택 화면 미리보기
-#Preview {
-    NavigationStack {
-        RegistrationTypeSelectionView()
     }
 }

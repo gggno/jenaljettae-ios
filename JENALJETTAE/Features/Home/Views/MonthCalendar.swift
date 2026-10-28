@@ -8,10 +8,10 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Calendar Event
 
+// MARK: - Calendar Event | 달력에 표시되는 일정 데이터
 struct CalendarEvent: Identifiable {
-    let id: Int
+    let id: UUID
     let title: String
     let type: ItemTypeFilter
     let startDate: Date
@@ -26,7 +26,7 @@ private struct CalendarWeek: Identifiable {
 }
 
 private struct CalendarEventSegment: Identifiable {
-    let id: Int
+    let id: UUID
     let title: String
     let startColumn: Int
     let endColumn: Int
@@ -427,7 +427,7 @@ struct MonthCalendar: View {
         .sorted { left, right in
             if left.isMultiDay != right.isMultiDay { return left.isMultiDay }
             if left.event.startDate != right.event.startDate { return left.event.startDate < right.event.startDate }
-            return left.event.id < right.event.id
+            return left.event.id.uuidString < right.event.id.uuidString
         }
 
         var occupied = Array(repeating: Array(repeating: false, count: 7), count: 2)

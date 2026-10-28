@@ -61,7 +61,7 @@ struct SelectedDateEventsView: View {
 // MARK: - Sample Event
 
 struct HomeSampleEvent: Identifiable {
-    let id: Int
+    let id: UUID
     let date: Date
     let type: ItemTypeFilter
     let title: String

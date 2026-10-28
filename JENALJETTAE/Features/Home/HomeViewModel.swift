@@ -11,47 +11,74 @@ final class HomeViewModel: ObservableObject {
 
     private let repository: any ManagedItemRepository
 
+    // MARK: - Initialize | Repository에서 저장된 항목 조회 및 초기 날짜 설정
     init(repository: any ManagedItemRepository) {
         self.repository = repository
+
         let today = Date()
         self.visibleMonth = today
         self.selectedDate = today
-        self.items = repository.fetchItems()
+        self.items = []
+
+        do {
+            items = try repository.fetchItems()
+        } catch {
+            print("일정 조회 실패: \(error)")
+        }
     }
 
-    // MARK: - Calendar Events | 선택 유형에 맞는 일정을 달력 표시용으로 변환
+    // MARK: - Calendar Events | 달력에 표시할 일정 데이터 변환
     var calendarEvents: [CalendarEvent] {
-        typeFilteredItems.map { item in
-            CalendarEvent(
+        typeFilteredItems.compactMap { item in
+            guard let range = displayRange(for: item) else { return nil }
+
+            return CalendarEvent(
                 id: item.id,
                 title: item.title,
                 type: filterType(for: item.type),
-                startDate: item.startDate,
-                endDate: item.endDate ?? item.startDate
+                startDate: range.start,
+                endDate: range.end
             )
         }
     }
 
-    // MARK: - Filtered Events | 선택 날짜에 포함된 일정만 목록으로 제공
+    // MARK: - Filtered Events | 선택 날짜에 해당하는 일정만 목록으로 제공
     var filteredEvents: [HomeSampleEvent] {
         let calendar = Calendar.current
         let day = calendar.startOfDay(for: selectedDate)
 
         return typeFilteredItems.filter { item in
-            let start = calendar.startOfDay(for: item.startDate)
-            let end = calendar.startOfDay(for: item.endDate ?? item.startDate)
+            guard let range = displayRange(for: item) else { return false }
+
+            let start = calendar.startOfDay(for: range.start)
+            let end = calendar.startOfDay(for: range.end)
+
             return start <= day && day <= end
         }.map { makeHomeEvent(from: $0) }
     }
 
-    // MARK: - Type Filter | 선택한 카테고리에 해당하는 일정만 조회
+    // MARK: - Type Filter | 선택한 카테고리에 해당하는 항목만 조회
     private var typeFilteredItems: [ManagedItem] {
         items.filter { selectedType == .all || filterType(for: $0.type) == selectedType }
     }
 
-    // MARK: - Reload | 향후 실제 저장소 변경 내역을 다시 조회할 때 사용
+    // MARK: - Display Range | 쿠폰은 만료일만, 다른 항목은 기존 기간으로 표시
+    private func displayRange(for item: ManagedItem) -> (start: Date, end: Date)? {
+        if item.type == .coupon {
+            guard let expiryDate = item.endDate else { return nil }
+            return (expiryDate, expiryDate)
+        }
+
+        return (item.startDate, item.endDate ?? item.startDate)
+    }
+
+    // MARK: - Reload | Repository에서 최신 데이터를 다시 조회하여 화면 갱신
     func reload() {
-        items = repository.fetchItems()
+        do {
+            items = try repository.fetchItems()
+        } catch {
+            print("일정 새로고침 실패: \(error)")
+        }
     }
 
     // MARK: - Select Date | 달력 날짜 선택 결과 반영
@@ -79,7 +106,7 @@ final class HomeViewModel: ObservableObject {
         selectedDate = today
     }
 
-    // MARK: - Pick Date | 날짜 선택기에서 지정한 월과 날짜를 함께 변경
+    // MARK: - Pick Date | 날짜 선택 결과를 달력과 선택 날짜에 반영
     func pickDate(_ date: Date) {
         selectedDate = date
         visibleMonth = date
@@ -118,6 +145,7 @@ final class HomeViewModel: ObservableObject {
 
         let calendar = Calendar.current
         let statusLabel: String
+
         if item.endDate != nil {
             statusLabel = "예정"
         } else if calendar.isDateInToday(item.startDate) {
@@ -130,13 +158,13 @@ final class HomeViewModel: ObservableObject {
 
         return HomeSampleEvent(
             id: item.id,
-            date: item.startDate,
+            date: item.type == .coupon ? (item.endDate ?? item.startDate) : item.startDate,
             type: type,
             title: item.title,
             subtitle: "\(prefix) · \(item.detail)",
             iconName: iconName,
             statusLabel: statusLabel,
-            endDate: item.endDate
+            endDate: item.type == .coupon ? nil : item.endDate
         )
     }
 }

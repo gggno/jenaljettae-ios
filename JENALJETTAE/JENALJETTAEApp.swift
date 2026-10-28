@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct JENALJETTAEApp: App {
@@ -13,5 +14,6 @@ struct JENALJETTAEApp: App {
         WindowGroup {
             MainTabView()
         }
+        .modelContainer(for: ManagedItemEntity.self)
     }
 }

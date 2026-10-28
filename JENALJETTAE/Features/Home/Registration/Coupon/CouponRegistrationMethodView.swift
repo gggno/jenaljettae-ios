@@ -7,8 +7,7 @@
 
 import SwiftUI
 
-// MARK: - Coupon Registration Method
-
+// MARK: - Coupon Registration Method | 쿠폰 등록 방법 선택 화면
 struct CouponRegistrationMethodView: View {
     @State private var showsNextStepNotice = false
     @State private var selectedMethodName = ""
@@ -17,9 +16,7 @@ struct CouponRegistrationMethodView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.sectionSpacing) {
-
-                // MARK: - Description
-
+                // MARK: - Description | 쿠폰 등록 방법 안내
                 VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                     Text("쿠폰·기프티콘")
                         .font(.subheadline.weight(.semibold))
@@ -34,8 +31,7 @@ struct CouponRegistrationMethodView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
-                // MARK: - Registration Buttons
-
+                // MARK: - Registration Buttons | AI 인식 및 직접 입력 선택
                 VStack(spacing: AppSpacing.small) {
                     Button {
                         selectedMethodName = "AI로 쿠폰 읽기"
@@ -67,8 +63,7 @@ struct CouponRegistrationMethodView: View {
                     .buttonStyle(.plain)
                 }
 
-                // MARK: - Sample Coupon
-
+                // MARK: - Sample Coupon | 쿠폰 등록 예시 표시
                 VStack(spacing: AppSpacing.xSmall) {
                     Image("ic_jnt_coupon")
                         .renderingMode(.template)
@@ -102,22 +97,18 @@ struct CouponRegistrationMethodView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle("쿠폰 등록 방법")
         .navigationBarTitleDisplayMode(.inline)
+
+        // MARK: - Manual Entry | 직접 입력 화면으로 이동
         .navigationDestination(isPresented: $showsManualEntry) {
             CouponManualEntryView()
         }
         .tint(AppColor.primaryForeground)
+
+        // MARK: - Alert | 미구현 AI 등록 기능 안내
         .alert("등록 기능 준비 중", isPresented: $showsNextStepNotice) {
             Button("확인", role: .cancel) {}
         } message: {
             Text("\(selectedMethodName) 기능은 다음 단계에서 연결할 예정이에요.")
         }
-    }
-}
-
-// MARK: - Preview
-
-#Preview {
-    NavigationStack {
-        CouponRegistrationMethodView()
     }
 }

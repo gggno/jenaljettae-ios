@@ -8,36 +8,35 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Coupon Manual Entry
-
+// MARK: - Coupon Manual Entry | 쿠폰 직접 입력 및 저장 화면
 struct CouponManualEntryView: View {
-    @State private var couponTitle = ""
-    @State private var brand = ""
-    @State private var couponNumber = ""
-    @State private var memo = ""
+    @Environment(\.saveCouponUseCase) private var saveCouponUseCase
+    @Environment(\.onCouponSaved) private var onCouponSaved
 
-    @State private var expiryDate: Date?
+    @StateObject private var viewModel = CouponRegistrationViewModel()
+
     @State private var pickerDate = Date()
-
     @State private var showsDatePicker = false
     @State private var showsMemoEditor = false
-    @State private var showsSaveNotice = false
-
     @State private var keyboardHeight: CGFloat = 0
+
     @FocusState private var isMemoFocused: Bool
 
-    private var canSave: Bool {
-        !couponTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && expiryDate != nil
+    // MARK: - Save Validation | 필수 입력값과 Environment 주입 여부 확인
+    private var canSubmit: Bool {
+        viewModel.canSave && saveCouponUseCase != nil && onCouponSaved != nil
     }
 
+    // MARK: - Expiry Date Text | 선택 날짜를 화면 표시용 문자열로 변환
     private var expiryDateText: String {
-        guard let expiryDate else { return "날짜 선택" }
+        guard let expiryDate = viewModel.expiryDate else { return "날짜 선택" }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy.MM.dd"
         return formatter.string(from: expiryDate)
     }
 
+    // MARK: - Hide Keyboard | 현재 입력 중인 키보드 닫기
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
@@ -45,30 +44,26 @@ struct CouponManualEntryView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
 
-            // MARK: - Input Content
-
+            // MARK: - Input Content | 쿠폰 정보 입력 영역
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.large) {
 
-                        // MARK: - Product Name
-
+                        // MARK: - Product Name | 상품명 필수 입력
                         CouponEntryTextField(
                             label: "상품명 *",
                             placeholder: "상품명을 입력해주세요.",
-                            text: $couponTitle
+                            text: $viewModel.couponTitle
                         )
 
-                        // MARK: - Brand
-
+                        // MARK: - Brand | 브랜드 선택 입력
                         CouponEntryTextField(
                             label: "브랜드 (선택)",
                             placeholder: "브랜드를 입력해주세요.",
-                            text: $brand
+                            text: $viewModel.brand
                         )
 
-                        // MARK: - Expiry Date
-
+                        // MARK: - Expiry Date | 만료일 필수 선택
                         VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                             Text("만료일 *")
                                 .font(AppTypography.caption)
@@ -76,7 +71,7 @@ struct CouponManualEntryView: View {
 
                             Button {
                                 hideKeyboard()
-                                pickerDate = expiryDate ?? Date()
+                                pickerDate = viewModel.expiryDate ?? Date()
 
                                 withAnimation {
                                     showsDatePicker.toggle()
@@ -84,7 +79,7 @@ struct CouponManualEntryView: View {
                             } label: {
                                 HStack {
                                     Text(expiryDateText)
-                                        .foregroundStyle(expiryDate == nil ? AppColor.textSecondary : AppColor.textPrimary)
+                                        .foregroundStyle(viewModel.expiryDate == nil ? AppColor.textSecondary : AppColor.textPrimary)
 
                                     Spacer()
 
@@ -98,8 +93,7 @@ struct CouponManualEntryView: View {
                             }
                             .buttonStyle(.plain)
 
-                            // MARK: - Inline Date Picker
-
+                            // MARK: - Inline Date Picker | 날짜 선택 및 적용
                             if showsDatePicker {
                                 VStack(spacing: AppSpacing.small) {
                                     DatePicker(
@@ -120,10 +114,21 @@ struct CouponManualEntryView: View {
                                         }
                                         .foregroundStyle(AppColor.textSecondary)
 
+                                        if viewModel.expiryDate != nil {
+                                            Button("날짜 지우기") {
+                                                viewModel.expiryDate = nil
+
+                                                withAnimation {
+                                                    showsDatePicker = false
+                                                }
+                                            }
+                                            .foregroundStyle(AppColor.textSecondary)
+                                        }
+
                                         Spacer()
 
                                         Button("적용") {
-                                            expiryDate = Calendar.current.startOfDay(for: pickerDate)
+                                            viewModel.expiryDate = Calendar.current.startOfDay(for: pickerDate)
 
                                             withAnimation {
                                                 showsDatePicker = false
@@ -138,16 +143,14 @@ struct CouponManualEntryView: View {
                             }
                         }
 
-                        // MARK: - Coupon Number
-
+                        // MARK: - Coupon Number | 쿠폰 번호 선택 입력
                         CouponEntryTextField(
                             label: "쿠폰 번호 (선택)",
                             placeholder: "쿠폰 번호를 입력해주세요.",
-                            text: $couponNumber
+                            text: $viewModel.couponNumber
                         )
 
-                        // MARK: - Memo
-
+                        // MARK: - Memo | 메모 입력 영역 펼치기
                         VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                             Button {
                                 withAnimation {
@@ -174,7 +177,7 @@ struct CouponManualEntryView: View {
                             .buttonStyle(.plain)
 
                             if showsMemoEditor {
-                                TextEditor(text: $memo)
+                                TextEditor(text: $viewModel.memo)
                                     .font(.body)
                                     .foregroundStyle(AppColor.textPrimary)
                                     .focused($isMemoFocused)
@@ -189,8 +192,7 @@ struct CouponManualEntryView: View {
                             }
                         }
 
-                        // MARK: - Required Fields Notice
-
+                        // MARK: - Required Fields Notice | 필수 입력 항목 안내
                         Text("상품명과 만료일은 필수 입력 항목이에요.")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColor.textSecondary)
@@ -217,8 +219,7 @@ struct CouponManualEntryView: View {
                         }
                 }
 
-                // MARK: - Memo Auto Scroll
-
+                // MARK: - Memo Auto Scroll | 메모 입력 시 스크롤 위치 조정
                 .onChange(of: isMemoFocused) { _, focused in
                     guard focused else { return }
 
@@ -233,7 +234,7 @@ struct CouponManualEntryView: View {
                         proxy.scrollTo("memoEditor", anchor: .top)
                     }
                 }
-                .onChange(of: memo) { _, newMemo in
+                .onChange(of: viewModel.memo) { _, newMemo in
                     guard isMemoFocused && newMemo.hasSuffix("\n") else { return }
 
                     withAnimation {
@@ -242,24 +243,28 @@ struct CouponManualEntryView: View {
                 }
             }
 
-            // MARK: - Fixed Save Button
-
+            // MARK: - Save Button | Environment의 UseCase로 저장 후 완료 알림
             Button {
                 hideKeyboard()
-                showsSaveNotice = true
+
+                guard let saveCouponUseCase, let onCouponSaved else { return }
+
+                if let savedItem = viewModel.saveCoupon(using: saveCouponUseCase) {
+                    onCouponSaved(savedItem)
+                }
             } label: {
-                Text("쿠폰 저장")
+                Text(viewModel.isSaving ? "저장 중..." : "쿠폰 저장")
                     .font(.headline)
-                    .foregroundStyle(canSave ? AppColor.onPrimary : AppColor.textSecondary)
+                    .foregroundStyle(canSubmit ? AppColor.onPrimary : AppColor.textSecondary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
-                        canSave ? AppColor.primary : AppColor.inputSurface,
+                        canSubmit ? AppColor.primary : AppColor.inputSurface,
                         in: RoundedRectangle(cornerRadius: AppRadius.card)
                     )
             }
             .buttonStyle(.plain)
-            .disabled(!canSave)
+            .disabled(!canSubmit)
             .padding(.horizontal, AppSpacing.screenHorizontal)
             .padding(.vertical, AppSpacing.small)
             .background(AppColor.background)
@@ -269,8 +274,7 @@ struct CouponManualEntryView: View {
         .navigationTitle("쿠폰 등록")
         .navigationBarTitleDisplayMode(.inline)
 
-        // MARK: - Keyboard Height For Scroll Only
-
+        // MARK: - Keyboard Height | 메모 입력 시 스크롤 여백 계산
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
             guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
             keyboardHeight = max(0, UIScreen.main.bounds.maxY - frame.minY)
@@ -279,18 +283,16 @@ struct CouponManualEntryView: View {
             keyboardHeight = 0
         }
 
-        // MARK: - Save Notice
-
-        .alert("저장 기능 준비 중", isPresented: $showsSaveNotice) {
+        // MARK: - Save Error | 저장 실패 시 오류 Alert 표시
+        .alert("쿠폰 저장 실패", isPresented: $viewModel.showsSaveError) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text("입력 화면 확인용 단계예요. 실제 쿠폰 저장은 다음 단계에서 연결할 예정이에요.")
+            Text(viewModel.saveErrorMessage)
         }
     }
 }
 
-// MARK: - Coupon Entry Text Field
-
+// MARK: - Coupon Entry Text Field | 쿠폰 정보 공통 입력 UI
 private struct CouponEntryTextField: View {
     let label: String
     let placeholder: String
@@ -320,10 +322,11 @@ private struct CouponEntryTextField: View {
     }
 }
 
-// MARK: - Preview
-
+// MARK: - Preview | 테스트용 UseCase 및 저장 완료 함수 주입
 #Preview {
     NavigationStack {
         CouponManualEntryView()
     }
+    .environment(\.saveCouponUseCase, SaveCouponUseCase(repository: SampleManagedItemRepository()))
+    .environment(\.onCouponSaved, { _ in })
 }
