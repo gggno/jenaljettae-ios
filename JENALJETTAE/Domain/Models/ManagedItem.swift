@@ -16,8 +16,11 @@ struct ManagedItem: Identifiable {
     let detail: String
     let startDate: Date
     let endDate: Date?
+
+    // MARK: - Coupon Details | 쿠폰 전용 추가 정보
     let couponNumber: String?
     let memo: String?
+    let imageData: Data?
 
     init(
         id: UUID = UUID(),
@@ -27,7 +30,8 @@ struct ManagedItem: Identifiable {
         startDate: Date,
         endDate: Date? = nil,
         couponNumber: String? = nil,
-        memo: String? = nil
+        memo: String? = nil,
+        imageData: Data? = nil
     ) {
         self.id = id
         self.type = type
@@ -37,5 +41,6 @@ struct ManagedItem: Identifiable {
         self.endDate = endDate
         self.couponNumber = couponNumber
         self.memo = memo
+        self.imageData = imageData
     }
 }

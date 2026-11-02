@@ -25,6 +25,7 @@ enum SaveCouponError: LocalizedError {
 // MARK: - Save Coupon UseCase | 쿠폰 입력값 검증 및 Repository 저장 요청
 @MainActor
 struct SaveCouponUseCase {
+
     private let repository: any ManagedItemRepository
 
     init(repository: any ManagedItemRepository) {
@@ -37,10 +38,10 @@ struct SaveCouponUseCase {
         brand: String,
         expiryDate: Date?,
         couponNumber: String,
-        memo: String
+        memo: String,
+        imageData: Data? = nil
     ) throws -> ManagedItem {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-
         guard !trimmedTitle.isEmpty else { throw SaveCouponError.emptyTitle }
         guard let expiryDate else { throw SaveCouponError.missingExpiryDate }
 
@@ -51,7 +52,8 @@ struct SaveCouponUseCase {
             startDate: Calendar.current.startOfDay(for: Date()),
             endDate: Calendar.current.startOfDay(for: expiryDate),
             couponNumber: optionalText(couponNumber),
-            memo: optionalText(memo)
+            memo: optionalText(memo),
+            imageData: imageData
         )
 
         try repository.saveItem(item)

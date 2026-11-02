@@ -50,31 +50,31 @@ struct MainTabView: View {
         }
         .tint(AppColor.primaryForeground)
         
-#if DEBUG
-.task {
-    do {
-        let repository = SwiftDataManagedItemRepository(modelContext: modelContext)
-        let items = try repository.fetchItems()
-
-        // MARK: - Debug | SwiftData에 저장된 전체 데이터 출력
-        for item in items {
-            print("📦 ID: \(item.id)")
-            print("유형: \(item.type.rawValue)")
-            print("제목: \(item.title)")
-            print("브랜드: \(item.detail)")
-            print("쿠폰 번호: \(item.couponNumber)")
-            print("메모: \(item.memo)")
-            print("시작일: \(item.startDate)")
-            print("종료일: \(String(describing: item.endDate))\n")
-            
-        }
-
-        print("✅ 저장된 전체 데이터: \(items.count)개")
-    } catch {
-        print("❌ 데이터 조회 실패: \(error)")
-    }
-}
-#endif
+//#if DEBUG
+//.task {
+//    do {
+//        let repository = SwiftDataManagedItemRepository(modelContext: modelContext)
+//        let items = try repository.fetchItems()
+//
+//        // MARK: - Debug | SwiftData에 저장된 전체 데이터 출력
+//        for item in items {
+//            print("📦 ID: \(item.id)")
+//            print("유형: \(item.type.rawValue)")
+//            print("제목: \(item.title)")
+//            print("브랜드: \(item.detail)")
+//            print("쿠폰 번호: \(item.couponNumber)")
+//            print("메모: \(item.memo)")
+//            print("시작일: \(item.startDate)")
+//            print("종료일: \(String(describing: item.endDate))\n")
+//            
+//        }
+//
+//        print("✅ 저장된 전체 데이터: \(items.count)개")
+//    } catch {
+//        print("❌ 데이터 조회 실패: \(error)")
+//    }
+//}
+//#endif
 
     }
 }

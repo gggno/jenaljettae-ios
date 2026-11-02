@@ -37,7 +37,8 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
                 startDate: entity.startDate,
                 endDate: entity.endDate,
                 couponNumber: entity.couponNumber,
-                memo: entity.memo
+                memo: entity.memo,
+                imageData: entity.imageData
             )
         }
     }
@@ -57,7 +58,7 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
             entity.endDate = item.endDate
             entity.couponNumber = item.couponNumber
             entity.memo = item.memo
-        
+            entity.imageData = item.imageData
         } else {
             let entity = ManagedItemEntity(
                 id: item.id,
@@ -67,7 +68,8 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
                 startDate: item.startDate,
                 endDate: item.endDate,
                 couponNumber: item.couponNumber,
-                memo: item.memo
+                memo: item.memo,
+                imageData: item.imageData
             )
             modelContext.insert(entity)
         }

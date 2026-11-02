@@ -23,6 +23,9 @@ final class ManagedItemEntity {
     var couponNumber: String?
     var memo: String?
 
+    @Attribute(.externalStorage)
+    var imageData: Data?
+
     init(
         id: UUID = UUID(),
         type: String,
@@ -32,6 +35,7 @@ final class ManagedItemEntity {
         endDate: Date? = nil,
         couponNumber: String? = nil,
         memo: String? = nil,
+        imageData: Data? = nil,
         createdAt: Date = .now
     ) {
         self.id = id
@@ -42,6 +46,7 @@ final class ManagedItemEntity {
         self.endDate = endDate
         self.couponNumber = couponNumber
         self.memo = memo
+        self.imageData = imageData
         self.createdAt = createdAt
     }
 }
