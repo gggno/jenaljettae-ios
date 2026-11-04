@@ -53,6 +53,13 @@ struct GeminiCouponAnalysisRepository: CouponAnalysisRepository {
         // MARK: - Image Preparation | 원본 이미지를 JPEG로 변환하고 Base64 인코딩
         let jpegData = try await prepareJPEG(from: imageData)
         let base64Image = jpegData.base64EncodedString()
+        
+#if DEBUG
+        print("GEMINI - 원본 이미지 크기: \(imageData.count) bytes")
+        print("GEMINI - JPEG 변환 크기: \(jpegData.count) bytes")
+        print("GEMINI - Base64 크기: \(base64Image.count) / 8000000")
+#endif
+        
         guard base64Image.count <= 8_000_000 else { throw CouponAnalysisError.imageTooLarge }
 
         // MARK: - Firebase Auth | 익명 사용자 인증 및 ID Token 발급
@@ -201,7 +208,12 @@ struct GeminiCouponAnalysisRepository: CouponAnalysisRepository {
         let scale = min(1, maxDimension / max(image.size.width, image.size.height))
         let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
 
-        let renderer = UIGraphicsImageRenderer(size: size)
+        // MARK: - Image Renderer | 최대 2400픽셀 기준으로 JPEG 이미지 생성
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        
         let processed = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: size))
         }

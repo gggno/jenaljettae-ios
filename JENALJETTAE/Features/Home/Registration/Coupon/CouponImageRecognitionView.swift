@@ -28,7 +28,6 @@ struct CouponImageRecognitionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.large) {
-
             // MARK: - Description | 이미지 확인 및 AI 분석 안내
             VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                 Text("선택한 쿠폰을 확인해주세요.")
@@ -52,30 +51,36 @@ struct CouponImageRecognitionView: View {
                 }
             }
 
-            // MARK: - Recognition Button | 분석 UseCase 실행
+            // MARK: - Recognition Button | 작업 생성 전에 잠가 중복 요청과 작업 덮어쓰기 방지
             Button {
+                guard !isRecognizing else { return }
+                isRecognizing = true
                 analysisTask = Task { await analyzeImage() }
             } label: {
-                HStack(spacing: AppSpacing.small) {
-                    if isRecognizing { ProgressView().tint(AppColor.onPrimary) }
-
-                    Text(isRecognizing ? "쿠폰 분석 중..." : "쿠폰 정보 인식하기")
-                        .font(.headline)
-                }
-                .foregroundStyle(AppColor.onPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(AppColor.primary, in: RoundedRectangle(cornerRadius: AppRadius.card))
+                Text("쿠폰 정보 인식하기")
+                    .font(.headline)
+                    .foregroundStyle(AppColor.onPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(AppColor.primary, in: RoundedRectangle(cornerRadius: AppRadius.card))
             }
             .buttonStyle(.plain)
-            .disabled(isRecognizing)
         }
         .padding(.horizontal, AppSpacing.screenHorizontal)
         .padding(.top, AppSpacing.large)
         .padding(.bottom, AppSpacing.small)
         .background(AppColor.background.ignoresSafeArea())
+        .disabled(isRecognizing)
+        .accessibilityHidden(isRecognizing)
+
+        // MARK: - Analysis Overlay | 기존 요청 상태로 표시하고 분석 중 화면 조작 차단
+        .overlay {
+            if isRecognizing { CouponAnalysisLoadingView() }
+        }
         .navigationTitle("쿠폰 이미지 확인")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(isRecognizing ? .hidden : .automatic, for: .navigationBar)
+        .interactiveDismissDisabled(isRecognizing)
 
         // MARK: - Cancel Analysis | 화면을 벗어나면 분석 요청 취소
         .onDisappear {
@@ -101,10 +106,11 @@ struct CouponImageRecognitionView: View {
     // MARK: - Analyze Image | 분석 성공 시 바텀시트 없이 쿠폰 등록 화면으로 이동
     @MainActor
     private func analyzeImage() async {
-        guard !isRecognizing else { return }
-
-        isRecognizing = true
-        defer { isRecognizing = false }
+        // MARK: - Finish Analysis | 성공·실패·취소 모두 로딩과 작업 참조 정리
+        defer {
+            isRecognizing = false
+            analysisTask = nil
+        }
 
         do {
             try Task.checkCancellation()
