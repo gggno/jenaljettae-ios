@@ -1,7 +1,12 @@
+//
+//  HomeViewModel.swift
+//  JENALJETTAE
+//
+
 import Foundation
 import Combine
 
-// MARK: - Home ViewModel | 홈 화면 상태와 항목 조회·필터링 관리
+// MARK: - Home ViewModel | 홈 상태·일정 조회 및 반복 구독 일정 계산
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published var selectedType: ItemTypeFilter = .all
@@ -11,26 +16,24 @@ final class HomeViewModel: ObservableObject {
 
     private let repository: any ManagedItemRepository
 
-    // MARK: - Initialize | Repository에서 저장된 항목 조회 및 초기 날짜 설정
+    // MARK: - Init | 홈 초기 상태
     init(repository: any ManagedItemRepository) {
         self.repository = repository
 
         let today = Date()
-        self.visibleMonth = today
-        self.selectedDate = today
-        self.items = []
+        visibleMonth = today
+        selectedDate = today
+        items = []
 
-        do {
-            items = try repository.fetchItems()
-        } catch {
-            print("일정 조회 실패: \(error)")
-        }
+        reload()
     }
 
-    // MARK: - Calendar Events | 달력에 표시할 일정 데이터 변환
+    // MARK: - Calendar Events | 달력에 표시할 이벤트
     var calendarEvents: [CalendarEvent] {
         typeFilteredItems.compactMap { item in
-            guard let range = displayRange(for: item) else { return nil }
+            guard let range = displayRange(for: item, in: visibleMonth) else {
+                return nil
+            }
 
             return CalendarEvent(
                 id: item.id,
@@ -42,37 +45,61 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Filtered Events | 선택 날짜에 해당하는 일정만 목록으로 제공
+    // MARK: - Filtered Events | 선택 날짜의 이벤트
     var filteredEvents: [HomeSampleEvent] {
         let calendar = Calendar.current
         let day = calendar.startOfDay(for: selectedDate)
 
-        return typeFilteredItems.filter { item in
-            guard let range = displayRange(for: item) else { return false }
+        return typeFilteredItems
+            .filter { item in
+                guard let range = displayRange(for: item, in: selectedDate) else {
+                    return false
+                }
 
-            let start = calendar.startOfDay(for: range.start)
-            let end = calendar.startOfDay(for: range.end)
-
-            return start <= day && day <= end
-        }.map { makeHomeEvent(from: $0) }
+                return calendar.startOfDay(for: range.start) <= day &&
+                       day <= calendar.startOfDay(for: range.end)
+            }
+            .map { makeHomeEvent(from: $0) }
     }
 
-    // MARK: - Type Filter | 선택한 카테고리에 해당하는 항목만 조회
+    // MARK: - Type Filter | 선택 유형 필터링
     private var typeFilteredItems: [ManagedItem] {
-        items.filter { selectedType == .all || filterType(for: $0.type) == selectedType }
-    }
-
-    // MARK: - Display Range | 쿠폰은 만료일만, 다른 항목은 기존 기간으로 표시
-    private func displayRange(for item: ManagedItem) -> (start: Date, end: Date)? {
-        if item.type == .coupon {
-            guard let expiryDate = item.endDate else { return nil }
-            return (expiryDate, expiryDate)
+        items.filter {
+            selectedType == .all || filterType(for: $0.type) == selectedType
         }
-
-        return (item.startDate, item.endDate ?? item.startDate)
     }
 
-    // MARK: - Reload | Repository에서 최신 데이터를 다시 조회하여 화면 갱신
+    // MARK: - Display Range | 항목 유형별 달력 날짜 계산
+    private func displayRange(
+        for item: ManagedItem,
+        in month: Date
+    ) -> (start: Date, end: Date)? {
+        switch item.type {
+        case .coupon, .pass:
+            guard let endDate = item.endDate else { return nil }
+            return (endDate, endDate)
+
+        case .subscription:
+            guard let billingDate = subscriptionBillingDate(for: item, in: month) else {
+                return nil
+            }
+            return (billingDate, billingDate)
+
+        case .schedule:
+            return (item.startDate, item.endDate ?? item.startDate)
+        }
+    }
+
+    // MARK: - Recurring Billing Date | 구독 결제일 계산
+    private func subscriptionBillingDate(
+        for item: ManagedItem,
+        in month: Date
+    ) -> Date? {
+        guard let cycle = item.subscriptionCycle else { return nil }
+        return cycle.billingDate(from: item.startDate, in: month)
+    }
+
+    // MARK: - Reload | SwiftData 항목 새로고침
     func reload() {
         do {
             items = try repository.fetchItems()
@@ -81,38 +108,44 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Select Date | 달력 날짜 선택 결과 반영
+    // MARK: - Select Date | 날짜 선택
     func selectDate(_ date: Date) {
         selectedDate = date
     }
 
-    // MARK: - Change Month | 기존 일자를 유지하되 이동 월의 마지막 날짜로 보정
+    // MARK: - Change Month | 월 이동
     func changeMonth(to month: Date) {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
 
-        let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) ?? month
-        let numberOfDays = calendar.range(of: .day, in: .month, for: monthStart)?.count ?? 28
-        let day = min(calendar.component(.day, from: selectedDate), numberOfDays)
+        let monthStart = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: month)
+        ) ?? month
+
+        let days = calendar.range(of: .day, in: .month, for: monthStart)?.count ?? 28
+        let day = min(calendar.component(.day, from: selectedDate), days)
 
         visibleMonth = monthStart
-        selectedDate = calendar.date(byAdding: .day, value: day - 1, to: monthStart) ?? monthStart
+        selectedDate = calendar.date(
+            byAdding: .day,
+            value: day - 1,
+            to: monthStart
+        ) ?? monthStart
     }
 
-    // MARK: - Move To Today | 달력 표시 월과 선택 날짜를 오늘로 초기화
+    // MARK: - Move To Today | 오늘로 이동
     func moveToToday() {
-        let today = Date()
-        visibleMonth = today
-        selectedDate = today
+        selectedDate = Date()
+        visibleMonth = selectedDate
     }
 
-    // MARK: - Pick Date | 날짜 선택 결과를 달력과 선택 날짜에 반영
+    // MARK: - Pick Date | 날짜와 달력 월을 함께 변경
     func pickDate(_ date: Date) {
         selectedDate = date
         visibleMonth = date
     }
 
-    // MARK: - Type Mapping | Domain의 유형을 홈 필터 유형으로 변환
+    // MARK: - Filter Type | Domain 유형을 UI 필터 유형으로 변환
     private func filterType(for type: ManagedItemType) -> ItemTypeFilter {
         switch type {
         case .coupon: return .coupon
@@ -122,9 +155,10 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Event Mapping | 일정 데이터를 기존 카드용 표시 모델로 변환
+    // MARK: - Home Event | 홈 카드 정보 구성
     private func makeHomeEvent(from item: ManagedItem) -> HomeSampleEvent {
         let type = filterType(for: item.type)
+
         let prefix: String
         let iconName: String
 
@@ -132,39 +166,75 @@ final class HomeViewModel: ObservableObject {
         case .coupon:
             prefix = "쿠폰"
             iconName = "ic_jnt_coupon"
+
         case .pass:
             prefix = "이용권"
             iconName = "ic_jnt_pass"
+
         case .subscription:
             prefix = "구독"
             iconName = "ic_jnt_subscription"
+
         case .schedule:
             prefix = "일정"
-            iconName = "ic_jnt_reservation"
+            iconName = "ic_jnt_schedule"
         }
 
-        let calendar = Calendar.current
+        let date = item.type == .schedule
+            ? selectedDate
+            : (displayRange(for: item, in: selectedDate)?.start ?? item.startDate)
+
         let statusLabel: String
 
-        if item.endDate != nil {
+        if (item.type == .coupon || item.type == .pass) && item.endDate != nil {
             statusLabel = "예정"
-        } else if calendar.isDateInToday(item.startDate) {
+        } else if Calendar.current.isDateInToday(date) {
             statusLabel = "오늘"
-        } else if calendar.isDateInTomorrow(item.startDate) {
+        } else if Calendar.current.isDateInTomorrow(date) {
             statusLabel = "내일"
         } else {
             statusLabel = "예정"
         }
 
+        let subtitle: String
+
+        if item.type == .subscription {
+            let cost = item.subscriptionAmount.map { "\($0.formatted())원" }
+
+            subtitle = (
+                [prefix, item.subscriptionCycle?.title, cost]
+                    .compactMap { $0 }
+            ).joined(separator: " · ")
+
+        } else if item.type == .schedule {
+            var parts = [prefix]
+
+            if let minutes = item.scheduleTimeMinutes {
+                parts.append(
+                    String(format: "%02d:%02d", minutes / 60, minutes % 60)
+                )
+            }
+
+            if !item.detail.isEmpty {
+                parts.append(item.detail)
+            }
+
+            subtitle = parts.joined(separator: " · ")
+        } else {
+            subtitle = item.detail.isEmpty
+                ? prefix
+                : "\(prefix) · \(item.detail)"
+        }
+
         return HomeSampleEvent(
             id: item.id,
-            date: item.type == .coupon ? (item.endDate ?? item.startDate) : item.startDate,
+            date: date,
             type: type,
             title: item.title,
-            subtitle: "\(prefix) · \(item.detail)",
+            subtitle: subtitle,
             iconName: iconName,
             statusLabel: statusLabel,
-            endDate: item.type == .coupon ? nil : item.endDate
+            endDate: item.type == .schedule ? item.endDate : nil
         )
     }
 }

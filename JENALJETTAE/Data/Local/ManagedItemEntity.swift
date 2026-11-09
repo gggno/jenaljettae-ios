@@ -8,7 +8,7 @@
 import Foundation
 import SwiftData
 
-// MARK: - Managed Item Entity | SwiftData에 저장되는 일정 데이터
+// MARK: - Managed Item Entity | SwiftData에 저장되는 공통 데이터
 @Model
 final class ManagedItemEntity {
     var id: UUID
@@ -19,12 +19,18 @@ final class ManagedItemEntity {
     var endDate: Date?
     var createdAt: Date
 
-    // MARK: - Coupon Details | 쿠폰 전용 추가 정보
     var couponNumber: String?
     var memo: String?
 
     @Attribute(.externalStorage)
     var imageData: Data?
+
+    // MARK: - Subscription Details | 정기 구독 선택 필드
+    var subscriptionCycle: String?
+    var subscriptionAmount: Int?
+
+    // MARK: - Schedule Details | 일정 시작 시간
+    var scheduleTimeMinutes: Int?
 
     init(
         id: UUID = UUID(),
@@ -36,6 +42,9 @@ final class ManagedItemEntity {
         couponNumber: String? = nil,
         memo: String? = nil,
         imageData: Data? = nil,
+        subscriptionCycle: String? = nil,
+        subscriptionAmount: Int? = nil,
+        scheduleTimeMinutes: Int? = nil,
         createdAt: Date = .now
     ) {
         self.id = id
@@ -47,6 +56,9 @@ final class ManagedItemEntity {
         self.couponNumber = couponNumber
         self.memo = memo
         self.imageData = imageData
+        self.subscriptionCycle = subscriptionCycle
+        self.subscriptionAmount = subscriptionAmount
+        self.scheduleTimeMinutes = scheduleTimeMinutes
         self.createdAt = createdAt
     }
 }

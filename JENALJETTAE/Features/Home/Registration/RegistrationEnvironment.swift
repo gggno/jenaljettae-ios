@@ -7,17 +7,43 @@
 
 import SwiftUI
 
-// MARK: - Save Coupon UseCase Key | 쿠폰 저장 기능을 하위 화면에 전달
+// MARK: - Coupon Registration | 쿠폰 저장 의존성
 private struct SaveCouponUseCaseKey: EnvironmentKey {
     static var defaultValue: SaveCouponUseCase? { nil }
 }
 
-// MARK: - Coupon Saved Action Key | 쿠폰 저장 완료 함수를 하위 화면에 전달
 private struct CouponSavedActionKey: EnvironmentKey {
     static var defaultValue: (@MainActor (ManagedItem) -> Void)? { nil }
 }
 
-// MARK: - Registration Environment | 등록 화면에서 사용할 환경 값 정의
+// MARK: - Pass Registration | 이용권 저장 의존성
+private struct SavePassUseCaseKey: EnvironmentKey {
+    static var defaultValue: SavePassUseCase? { nil }
+}
+
+private struct PassSavedActionKey: EnvironmentKey {
+    static var defaultValue: (@MainActor (ManagedItem) -> Void)? { nil }
+}
+
+// MARK: - Subscription Registration | 정기 구독 저장 의존성
+private struct SaveSubscriptionUseCaseKey: EnvironmentKey {
+    static var defaultValue: SaveSubscriptionUseCase? { nil }
+}
+
+private struct SubscriptionSavedActionKey: EnvironmentKey {
+    static var defaultValue: (@MainActor (ManagedItem) -> Void)? { nil }
+}
+
+// MARK: - Schedule Registration | 일정 저장 의존성
+private struct SaveScheduleUseCaseKey: EnvironmentKey {
+    static var defaultValue: SaveScheduleUseCase? { nil }
+}
+
+private struct ScheduleSavedActionKey: EnvironmentKey {
+    static var defaultValue: (@MainActor (ManagedItem) -> Void)? { nil }
+}
+
+// MARK: - Registration Environment | 등록 의존성 및 저장 콜백
 extension EnvironmentValues {
     var saveCouponUseCase: SaveCouponUseCase? {
         get { self[SaveCouponUseCaseKey.self] }
@@ -27,5 +53,35 @@ extension EnvironmentValues {
     var onCouponSaved: (@MainActor (ManagedItem) -> Void)? {
         get { self[CouponSavedActionKey.self] }
         set { self[CouponSavedActionKey.self] = newValue }
+    }
+
+    var savePassUseCase: SavePassUseCase? {
+        get { self[SavePassUseCaseKey.self] }
+        set { self[SavePassUseCaseKey.self] = newValue }
+    }
+
+    var onPassSaved: (@MainActor (ManagedItem) -> Void)? {
+        get { self[PassSavedActionKey.self] }
+        set { self[PassSavedActionKey.self] = newValue }
+    }
+
+    var saveSubscriptionUseCase: SaveSubscriptionUseCase? {
+        get { self[SaveSubscriptionUseCaseKey.self] }
+        set { self[SaveSubscriptionUseCaseKey.self] = newValue }
+    }
+
+    var onSubscriptionSaved: (@MainActor (ManagedItem) -> Void)? {
+        get { self[SubscriptionSavedActionKey.self] }
+        set { self[SubscriptionSavedActionKey.self] = newValue }
+    }
+
+    var saveScheduleUseCase: SaveScheduleUseCase? {
+        get { self[SaveScheduleUseCaseKey.self] }
+        set { self[SaveScheduleUseCaseKey.self] = newValue }
+    }
+
+    var onScheduleSaved: (@MainActor (ManagedItem) -> Void)? {
+        get { self[ScheduleSavedActionKey.self] }
+        set { self[ScheduleSavedActionKey.self] = newValue }
     }
 }

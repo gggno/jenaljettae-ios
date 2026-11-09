@@ -10,15 +10,13 @@ import PhotosUI
 import UIKit
 
 // MARK: - Coupon Manual Entry | 쿠폰 직접 입력 및 저장 화면
+
 struct CouponManualEntryView: View {
     let initialDraft: CouponDraft?
     let initialImageData: Data?
-
     @Environment(\.saveCouponUseCase) private var saveCouponUseCase
     @Environment(\.onCouponSaved) private var onCouponSaved
-
     @StateObject private var viewModel = CouponRegistrationViewModel()
-
     @State private var pickerDate = Date()
     @State private var showsDatePicker = false
     @State private var showsMemoEditor = false
@@ -32,7 +30,6 @@ struct CouponManualEntryView: View {
 
     // MARK: - AI Image State | AI 분석 원본 이미지 변경 여부 관리
     @State private var hasChangedAnalyzedImage = false
-
     @FocusState private var isMemoFocused: Bool
 
     // MARK: - Initialization | AI 분석 결과와 원본 이미지 전달받기
@@ -70,42 +67,38 @@ struct CouponManualEntryView: View {
     @MainActor
     private func loadPhoto(_ photo: PhotosPickerItem) async {
         isLoadingPhoto = true
-
         defer {
             if selectedPhoto == photo {
                 selectedPhoto = nil
                 isLoadingPhoto = false
             }
         }
-
         do {
             let data = try await photo.loadTransferable(type: Data.self)
             try Task.checkCancellation()
             guard selectedPhoto == photo else { return }
-
             guard let data, UIImage(data: data) != nil else {
                 showsPhotoLoadError = true
                 return
             }
-
             viewModel.setImage(data)
             if initialDraft != nil { hasChangedAnalyzedImage = true }
-
         } catch is CancellationError {
             // 화면 이탈 등으로 취소된 로딩은 오류를 표시하지 않음
         } catch {
             if selectedPhoto == photo { showsPhotoLoadError = true }
         }
     }
-
     var body: some View {
+
         // MARK: - Input Content | 전체 쿠폰 등록 화면 스크롤
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.large) {
 
                     // MARK: - Coupon Image | 쿠폰 이미지 선택·변경·삭제
-                    CouponImageSection(
+                    RegistrationImageSection(
+                        itemName: "쿠폰",
                         imageData: viewModel.imageData,
                         selectedPhoto: $selectedPhoto,
                         isLoadingPhoto: isLoadingPhoto,
@@ -124,23 +117,19 @@ struct CouponManualEntryView: View {
                     if let initialDraft,
                        viewModel.imageData != nil,
                        hasChangedAnalyzedImage || !initialDraft.reviewNotes.isEmpty {
-
                         VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                             HStack(spacing: AppSpacing.xSmall) {
                                 Image(systemName: "exclamationmark.circle.fill")
                                     .foregroundStyle(.orange)
-
                                 Text(hasChangedAnalyzedImage ? "이미지를 확인해주세요." : "확인 필요한 항목")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(AppColor.textPrimary)
                             }
-
                             if !hasChangedAnalyzedImage {
                                 Text("AI가 정확하게 인식했는지 확인해주세요.")
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColor.textSecondary)
                             }
-
                             if hasChangedAnalyzedImage {
                                 Text("• 이미지와 입력된 쿠폰 정보가 일치하는지 확인해주세요.")
                                     .font(AppTypography.caption)
@@ -178,7 +167,6 @@ struct CouponManualEntryView: View {
                         Text("만료일 *")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColor.textPrimary)
-
                         Button {
                             hideKeyboard()
                             pickerDate = viewModel.expiryDate ?? Date()
@@ -187,9 +175,7 @@ struct CouponManualEntryView: View {
                             HStack {
                                 Text(expiryDateText)
                                     .foregroundStyle(viewModel.expiryDate == nil ? AppColor.textSecondary : AppColor.textPrimary)
-
                                 Spacer()
-
                                 Image(systemName: "calendar")
                                     .foregroundStyle(AppColor.primaryForeground)
                             }
@@ -212,13 +198,11 @@ struct CouponManualEntryView: View {
                                 .labelsHidden()
                                 .environment(\.locale, Locale(identifier: "ko_KR"))
                                 .frame(height: 216)
-
                                 HStack {
                                     Button("취소") {
                                         withAnimation { showsDatePicker = false }
                                     }
                                     .foregroundStyle(AppColor.textSecondary)
-
                                     if viewModel.expiryDate != nil {
                                         Button("날짜 지우기") {
                                             viewModel.expiryDate = nil
@@ -226,9 +210,7 @@ struct CouponManualEntryView: View {
                                         }
                                         .foregroundStyle(AppColor.textSecondary)
                                     }
-
                                     Spacer()
-
                                     Button("적용") {
                                         viewModel.expiryDate = Calendar.current.startOfDay(for: pickerDate)
                                         withAnimation { showsDatePicker = false }
@@ -247,12 +229,10 @@ struct CouponManualEntryView: View {
                                 HStack(spacing: AppSpacing.xSmall) {
                                     Image(systemName: "exclamationmark.circle.fill")
                                         .foregroundStyle(.orange)
-
                                     Text("이미 만료된 쿠폰이에요.")
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(AppColor.textPrimary)
                                 }
-
                                 Text("유효기간을 확인해주세요. 만료된 쿠폰도 기록용으로 등록할 수 있어요.")
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColor.textSecondary)
@@ -281,9 +261,7 @@ struct CouponManualEntryView: View {
                             HStack {
                                 Text(viewModel.memo.isEmpty ? "메모 추가 (선택)" : "메모 확인 및 수정")
                                     .foregroundStyle(AppColor.textPrimary)
-
                                 Spacer()
-
                                 Image(systemName: showsMemoEditor ? "chevron.up" : "chevron.down")
                                     .foregroundStyle(AppColor.textSecondary)
                             }
@@ -292,7 +270,6 @@ struct CouponManualEntryView: View {
                             .background(AppColor.inputSurface, in: RoundedRectangle(cornerRadius: AppRadius.input))
                         }
                         .buttonStyle(.plain)
-
                         if showsMemoEditor {
                             TextEditor(text: $viewModel.memo)
                                 .font(.body)
@@ -316,7 +293,6 @@ struct CouponManualEntryView: View {
                     Button {
                         hideKeyboard()
                         guard let saveCouponUseCase, let onCouponSaved else { return }
-
                         if let savedItem = viewModel.saveCoupon(using: saveCouponUseCase) {
                             onCouponSaved(savedItem)
                         }
@@ -374,12 +350,10 @@ struct CouponManualEntryView: View {
         .onAppear {
             guard !hasAppliedInitialData else { return }
             hasAppliedInitialData = true
-
             if let initialDraft {
                 viewModel.apply(draft: initialDraft)
                 if let expiryDate = initialDraft.expiryDate { pickerDate = expiryDate }
             }
-
             if let initialImageData {
                 viewModel.setImage(initialImageData)
             }
@@ -413,19 +387,17 @@ struct CouponManualEntryView: View {
 }
 
 // MARK: - Coupon Entry Text Field | 쿠폰 정보 공통 입력 UI
+
 private struct CouponEntryTextField: View {
     let label: String
     let placeholder: String
-
     @Binding var text: String
     @FocusState private var isFocused: Bool
-
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColor.textPrimary)
-
             TextField(placeholder, text: $text)
                 .font(.body)
                 .foregroundStyle(AppColor.textPrimary)
@@ -443,6 +415,7 @@ private struct CouponEntryTextField: View {
 }
 
 // MARK: - Preview | 직접 입력 화면 미리보기
+
 #Preview {
     NavigationStack {
         CouponManualEntryView()

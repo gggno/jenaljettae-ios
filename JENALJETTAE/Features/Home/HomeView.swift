@@ -10,7 +10,6 @@ import SwiftUI
 // MARK: - Home View | 홈 달력 표시 및 일정 관리
 struct HomeView: View {
     @StateObject private var viewModel: HomeViewModel
-
     private let repository: any ManagedItemRepository
 
     @State private var showsRegistrationTypeSelection = false
@@ -19,12 +18,15 @@ struct HomeView: View {
     // MARK: - Dependency Injection | Repository로 홈 ViewModel 생성
     init(repository: any ManagedItemRepository) {
         self.repository = repository
-        _viewModel = StateObject(wrappedValue: HomeViewModel(repository: repository))
+        _viewModel = StateObject(
+            wrappedValue: HomeViewModel(repository: repository)
+        )
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: - Type Filter | 선택 유형에 맞게 달력 및 목록 갱신
+
+            // MARK: - Type Filter | 유형별 필터
             TypeFilter(
                 selectedType: viewModel.selectedType,
                 onSelect: { viewModel.selectedType = $0 }
@@ -32,7 +34,8 @@ struct HomeView: View {
 
             ScrollView {
                 VStack(spacing: AppSpacing.sectionSpacing) {
-                    // MARK: - Month Calendar | 월 이동 및 날짜 선택 연결
+
+                    // MARK: - Month Calendar | 달력
                     MonthCalendar(
                         visibleMonth: viewModel.visibleMonth,
                         selectedDate: viewModel.selectedDate,
@@ -45,7 +48,7 @@ struct HomeView: View {
                     )
                     .padding(.horizontal, AppSpacing.screenHorizontal)
 
-                    // MARK: - Selected Date Events | 선택 날짜의 일정 목록 표시
+                    // MARK: - Selected Date Events | 선택한 날짜의 일정
                     SelectedDateEventsView(
                         selectedDate: viewModel.selectedDate,
                         events: viewModel.filteredEvents,
@@ -63,7 +66,7 @@ struct HomeView: View {
         .navigationTitle("홈")
         .modifier(HomeNavigationTitleStyle())
 
-        // MARK: - Add Toolbar | iOS 버전에 맞춰 추가 버튼 배치
+        // MARK: - Add Toolbar | 등록 화면 열기
         .toolbar {
             if #available(iOS 27.1, *) {
                 ToolbarItem(placement: .topBarPinnedTrailing) {
@@ -78,12 +81,17 @@ struct HomeView: View {
             }
         }
 
-        // MARK: - Registration | 쿠폰 저장 기능과 완료 처리를 Environment에 등록
+        // MARK: - Registration | 등록 유형 선택 및 UseCase 주입
         .fullScreenCover(isPresented: $showsRegistrationTypeSelection) {
             NavigationStack {
                 RegistrationTypeSelectionView()
             }
-            .environment(\.saveCouponUseCase, SaveCouponUseCase(repository: repository))
+
+            // MARK: - Coupon | 쿠폰 저장
+            .environment(
+                \.saveCouponUseCase,
+                SaveCouponUseCase(repository: repository)
+            )
             .environment(\.onCouponSaved, { savedItem in
                 viewModel.reload()
 
@@ -93,9 +101,58 @@ struct HomeView: View {
 
                 showsRegistrationTypeSelection = false
             })
+
+            // MARK: - Pass | 이용권 저장
+            .environment(
+                \.savePassUseCase,
+                SavePassUseCase(repository: repository)
+            )
+            .environment(\.onPassSaved, { savedItem in
+                viewModel.reload()
+
+                if let endDate = savedItem.endDate {
+                    viewModel.pickDate(endDate)
+                }
+
+                showsRegistrationTypeSelection = false
+            })
+
+            // MARK: - Subscription | 정기 구독 저장
+            .environment(
+                \.saveSubscriptionUseCase,
+                SaveSubscriptionUseCase(repository: repository)
+            )
+            .environment(\.onSubscriptionSaved, { savedItem in
+                viewModel.reload()
+
+                let today = Calendar.current.startOfDay(for: Date())
+                let startDate = Calendar.current.startOfDay(for: savedItem.startDate)
+
+                if startDate >= today {
+                    viewModel.pickDate(startDate)
+                } else if let nextBillingDate = savedItem.subscriptionCycle?
+                    .upcomingBillingDates(from: startDate, count: 1).first {
+                    viewModel.pickDate(nextBillingDate)
+                } else {
+                    viewModel.pickDate(startDate)
+                }
+
+                showsRegistrationTypeSelection = false
+            })
+
+            // MARK: - Schedule | 일정 저장
+            .environment(
+                \.saveScheduleUseCase,
+                SaveScheduleUseCase(repository: repository)
+            )
+            .environment(\.onScheduleSaved, { savedItem in
+                viewModel.reload()
+                viewModel.pickDate(savedItem.startDate)
+                showsRegistrationTypeSelection = false
+            })
         }
 
-        // MARK: - Detail Alert | 상세 화면 구현 전 임시 안내
+        // MARK: - Temporary Detail | 상세 화면 미구현
         .alert("일정 상세 화면 준비 중", isPresented: $showsSampleDetail) {
             Button("확인", role: .cancel) {}
         } message: {
@@ -114,7 +171,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Navigation Title Style | iOS 버전에 맞는 제목 표시 방식
+// MARK: - Navigation Title Style | iOS 버전에 맞는 제목 표시
 private struct HomeNavigationTitleStyle: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {

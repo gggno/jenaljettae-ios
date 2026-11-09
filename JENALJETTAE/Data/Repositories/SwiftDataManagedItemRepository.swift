@@ -8,17 +8,16 @@
 import Foundation
 import SwiftData
 
-// MARK: - SwiftData Repository | 실제 일정 데이터 저장·조회·삭제
+// MARK: - SwiftData Repository | 공통 항목 저장·조회·삭제
 @MainActor
 final class SwiftDataManagedItemRepository: ManagedItemRepository {
-
     private let modelContext: ModelContext
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
 
-    // MARK: - Fetch | SwiftData Entity를 Domain 모델로 변환하여 조회
+    // MARK: - Fetch | SwiftData Entity를 Domain 모델로 변환
     func fetchItems() throws -> [ManagedItem] {
         let descriptor = FetchDescriptor<ManagedItemEntity>(
             sortBy: [SortDescriptor(\.startDate)]
@@ -38,12 +37,15 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
                 endDate: entity.endDate,
                 couponNumber: entity.couponNumber,
                 memo: entity.memo,
-                imageData: entity.imageData
+                imageData: entity.imageData,
+                subscriptionCycle: entity.subscriptionCycle.flatMap(SubscriptionCycle.init(rawValue:)),
+                subscriptionAmount: entity.subscriptionAmount,
+                scheduleTimeMinutes: entity.scheduleTimeMinutes
             )
         }
     }
 
-    // MARK: - Save | ID를 기준으로 신규 저장 또는 기존 데이터 수정
+    // MARK: - Save | ID 기준 신규 저장 또는 수정
     func saveItem(_ item: ManagedItem) throws {
         let id = item.id
         let descriptor = FetchDescriptor<ManagedItemEntity>(
@@ -59,25 +61,32 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
             entity.couponNumber = item.couponNumber
             entity.memo = item.memo
             entity.imageData = item.imageData
+            entity.subscriptionCycle = item.subscriptionCycle?.rawValue
+            entity.subscriptionAmount = item.subscriptionAmount
+            entity.scheduleTimeMinutes = item.scheduleTimeMinutes
         } else {
-            let entity = ManagedItemEntity(
-                id: item.id,
-                type: item.type.rawValue,
-                title: item.title,
-                detail: item.detail,
-                startDate: item.startDate,
-                endDate: item.endDate,
-                couponNumber: item.couponNumber,
-                memo: item.memo,
-                imageData: item.imageData
+            modelContext.insert(
+                ManagedItemEntity(
+                    id: item.id,
+                    type: item.type.rawValue,
+                    title: item.title,
+                    detail: item.detail,
+                    startDate: item.startDate,
+                    endDate: item.endDate,
+                    couponNumber: item.couponNumber,
+                    memo: item.memo,
+                    imageData: item.imageData,
+                    subscriptionCycle: item.subscriptionCycle?.rawValue,
+                    subscriptionAmount: item.subscriptionAmount,
+                    scheduleTimeMinutes: item.scheduleTimeMinutes
+                )
             )
-            modelContext.insert(entity)
         }
 
         try modelContext.save()
     }
 
-    // MARK: - Delete | ID에 해당하는 저장 데이터 삭제
+    // MARK: - Delete | ID로 데이터 삭제
     func deleteItem(id: UUID) throws {
         let descriptor = FetchDescriptor<ManagedItemEntity>(
             predicate: #Predicate { $0.id == id }
@@ -90,7 +99,6 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
     }
 }
 
-// MARK: - Repository Error | 저장 데이터 변환 오류
 private enum RepositoryError: LocalizedError {
     case invalidType(String)
 

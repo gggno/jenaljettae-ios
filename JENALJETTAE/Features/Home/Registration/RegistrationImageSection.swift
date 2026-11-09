@@ -1,16 +1,17 @@
 //
-//  CouponImageSection.swift
+//  RegistrationImageSection.swift
 //  JENALJETTAE
 //
-//  Created by 정근호 on 11/2/26.
+//  Created by 정근호 on 11/5/26.
 //
 
 import SwiftUI
 import PhotosUI
 import UIKit
 
-// MARK: - Coupon Image Section | 쿠폰 이미지 선택·변경·삭제 및 전체 화면 보기
-struct CouponImageSection: View {
+// MARK: - Registration Image Section | 등록 이미지 선택·변경·삭제 및 전체 화면 보기
+struct RegistrationImageSection: View {
+    let itemName: String
     let imageData: Data?
     @Binding var selectedPhoto: PhotosPickerItem?
     let isLoadingPhoto: Bool
@@ -20,31 +21,29 @@ struct CouponImageSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
-            Text("쿠폰 이미지 (선택)")
+            Text("\(itemName) 이미지 (선택)")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColor.textPrimary)
 
             if let imageData, let image = UIImage(data: imageData) {
-               
-                // MARK: - Image Card | 실제 이미지 모서리에 라운드를 적용하고 전체 화면 보기
-               Button {
-                   showsImagePreview = true
-               } label: {
-                   Image(uiImage: image)
-                       .resizable()
-                       .scaledToFit()
-                       .clipShape(RoundedRectangle(cornerRadius: 8))
-                       .frame(maxWidth: .infinity)
-                       .frame(height: 200)
-                       .background(AppColor.inputSurface, in: RoundedRectangle(cornerRadius: 8))
-                       .overlay {
-                           if isLoadingPhoto { ProgressView() }
-                       }
-               }
-               .buttonStyle(.plain)
-               .disabled(isLoadingPhoto)
-               .accessibilityLabel("쿠폰 이미지 전체 화면 보기")
-
+                // MARK: - Image Card | 쿠폰과 동일한 원본 비율·모서리 라운드
+                Button {
+                    showsImagePreview = true
+                } label: {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 200)
+                        .background(AppColor.inputSurface, in: RoundedRectangle(cornerRadius: 8))
+                        .overlay {
+                            if isLoadingPhoto { ProgressView() }
+                        }
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoadingPhoto)
+                .accessibilityLabel("\(itemName) 이미지 전체 화면 보기")
 
                 // MARK: - Image Actions | 사진 변경·삭제 버튼 오른쪽 정렬
                 HStack(spacing: AppSpacing.medium) {
@@ -66,7 +65,7 @@ struct CouponImageSection: View {
                 .buttonStyle(.plain)
                 .padding(.top, AppSpacing.xSmall)
             } else {
-                // MARK: - Empty Image Card | 이미지 없을 때 사진 선택 영역
+                // MARK: - Empty Image Card | 쿠폰과 동일한 200pt 이미지 첨부 카드
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     VStack(spacing: AppSpacing.xSmall) {
                         if isLoadingPhoto {
@@ -77,7 +76,7 @@ struct CouponImageSection: View {
                                 .foregroundStyle(AppColor.textSecondary)
                         }
 
-                        Text(isLoadingPhoto ? "이미지 불러오는 중..." : "쿠폰 이미지 추가")
+                        Text(isLoadingPhoto ? "이미지 불러오는 중..." : "\(itemName) 이미지 추가")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(AppColor.textPrimary)
 
@@ -97,11 +96,9 @@ struct CouponImageSection: View {
                 .disabled(isLoadingPhoto)
             }
         }
-
-        // MARK: - Image Preview | 선택된 이미지를 전체 화면으로 확대·축소
         .fullScreenCover(isPresented: $showsImagePreview) {
             if let imageData, let image = UIImage(data: imageData) {
-                CouponImagePreviewView(image: image)
+                RegistrationImagePreviewView(image: image)
             }
         }
     }

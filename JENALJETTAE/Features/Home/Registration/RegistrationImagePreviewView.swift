@@ -1,22 +1,22 @@
 //
-//  CouponImagePreviewView.swift
+//  RegistrationImagePreviewView.swift
 //  JENALJETTAE
 //
-//  Created by 정근호 on 11/2/26.
+//  Created by 정근호 on 11/5/26.
 //
 
 import SwiftUI
 import UIKit
 
-// MARK: - Coupon Image Preview | 전체 화면 이미지 확인 및 드래그로 닫기
-struct CouponImagePreviewView: View {
+// MARK: - Registration Image Preview | 전체 화면 이미지 확인 및 아래로 드래그해 닫기
+struct RegistrationImagePreviewView: View {
     let image: UIImage
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: - Close Button | 이미지와 겹치지 않는 상단 닫기 버튼
+            // MARK: - Close Button | 쿠폰과 동일한 상단 44×44 닫기 버튼
             HStack {
                 Spacer()
 
@@ -27,8 +27,7 @@ struct CouponImagePreviewView: View {
                         .frame(width: 44, height: 44)
                         .background(AppColor.card, in: Circle())
                         .overlay {
-                            Circle()
-                                .strokeBorder(AppColor.border, lineWidth: 1)
+                            Circle().strokeBorder(AppColor.border, lineWidth: 1)
                         }
                 }
                 .buttonStyle(.plain)
@@ -38,8 +37,8 @@ struct CouponImagePreviewView: View {
             .padding(.top, AppSpacing.small)
             .padding(.bottom, AppSpacing.large)
 
-            // MARK: - Zoomable Image | 실제 이미지 모서리에 라운드를 적용하여 표시
-            ZoomableCouponImage(image: image, onDismiss: { dismiss() })
+            // MARK: - Zoomable Image | 쿠폰과 동일한 확대·축소 및 이미지 라운드
+            ZoomableRegistrationImage(image: image, onDismiss: { dismiss() })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, AppSpacing.screenHorizontal)
                 .padding(.bottom, AppSpacing.medium)
@@ -48,8 +47,8 @@ struct CouponImagePreviewView: View {
     }
 }
 
-// MARK: - Zoomable Coupon Image | UIScrollView 기반 이미지 확대·축소 및 닫기
-private struct ZoomableCouponImage: UIViewRepresentable {
+// MARK: - Zoomable Registration Image | UIScrollView 기반 확대·축소 및 닫기
+private struct ZoomableRegistrationImage: UIViewRepresentable {
     let image: UIImage
     let onDismiss: () -> Void
 
@@ -66,8 +65,8 @@ private struct ZoomableCouponImage: UIViewRepresentable {
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.panGestureRecognizer.isEnabled = false
 
-        // MARK: - Image View | 원본 비율을 유지하면서 실제 이미지 모서리만 둥글게 표시
-        let imageView = RoundedCouponImageView(image: image)
+        // MARK: - Image View | 실제 이미지 부분에만 모서리 라운드
+        let imageView = RoundedRegistrationImageView(image: image)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(imageView)
@@ -80,15 +79,14 @@ private struct ZoomableCouponImage: UIViewRepresentable {
             imageView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
             imageView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
         ])
-
         context.coordinator.imageView = imageView
 
-        // MARK: - Double Tap | 더블탭으로 이미지 확대·축소
+        // MARK: - Double Tap | 누른 위치 기준 확대·축소
         let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
         scrollView.addGestureRecognizer(doubleTap)
 
-        // MARK: - Dismiss Pan | 아래로 드래그해 전체 화면 닫기
+        // MARK: - Dismiss Pan | 아래 방향 드래그로 닫기
         let dismissPan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDismissPan(_:)))
         dismissPan.maximumNumberOfTouches = 1
         dismissPan.delegate = context.coordinator
@@ -110,18 +108,16 @@ private struct ZoomableCouponImage: UIViewRepresentable {
         weak var imageView: UIImageView?
         var onDismiss: () -> Void
 
-        init(onDismiss: @escaping () -> Void) {
-            self.onDismiss = onDismiss
-        }
+        init(onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
 
-        // MARK: - Image Zoom | 확대된 상태에서만 이미지 이동 허용
+        // MARK: - Image Zoom | 확대 중에만 이미지 이동 허용
         func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
 
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
             scrollView.panGestureRecognizer.isEnabled = scrollView.zoomScale > scrollView.minimumZoomScale + 0.01
         }
 
-        // MARK: - Double Tap | 누른 위치 기준으로 2.5배 확대 또는 복귀
+        // MARK: - Double Tap | 2.5배 확대 또는 원본으로 복귀
         @objc func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
             guard let scrollView = recognizer.view as? UIScrollView, let imageView else { return }
 
@@ -139,36 +135,31 @@ private struct ZoomableCouponImage: UIViewRepresentable {
                 width: size.width,
                 height: size.height
             )
-
             scrollView.zoom(to: rect, animated: true)
         }
 
-        // MARK: - Dismiss Pan | 아래로 120pt 이상 드래그 시 화면 닫기
+        // MARK: - Dismiss Pan | 아래로 120pt 이상 드래그하면 닫기
         @objc func handleDismissPan(_ recognizer: UIPanGestureRecognizer) {
             guard let scrollView = recognizer.view as? UIScrollView else { return }
-
             let translation = recognizer.translation(in: scrollView.superview)
 
             switch recognizer.state {
             case .changed:
                 scrollView.transform = CGAffineTransform(translationX: 0, y: max(0, translation.y))
-
             case .ended:
                 if translation.y >= 120 {
                     onDismiss()
                 } else {
                     resetPosition(scrollView)
                 }
-
             case .cancelled, .failed:
                 resetPosition(scrollView)
-
             default:
                 break
             }
         }
 
-        // MARK: - Gesture Validation | 원본 크기에서 아래 방향 드래그만 허용
+        // MARK: - Gesture Validation | 원본 크기의 아래 방향 드래그만 허용
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             guard let pan = gestureRecognizer as? UIPanGestureRecognizer,
                   let scrollView = pan.view as? UIScrollView,
@@ -178,7 +169,6 @@ private struct ZoomableCouponImage: UIViewRepresentable {
             return velocity.y > 0 && velocity.y > abs(velocity.x)
         }
 
-        // MARK: - Reset Position | 기준 거리 미달 시 이미지 원위치
         private func resetPosition(_ scrollView: UIScrollView) {
             UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
                 scrollView.transform = .identity
@@ -187,22 +177,19 @@ private struct ZoomableCouponImage: UIViewRepresentable {
     }
 }
 
-// MARK: - Rounded Coupon Image View | 실제 표시되는 이미지 영역에만 라운드 적용
-private final class RoundedCouponImageView: UIImageView {
+// MARK: - Rounded Registration Image View | 실제 이미지 영역에만 라운드 적용
+private final class RoundedRegistrationImageView: UIImageView {
     private let roundedMask = CAShapeLayer()
 
     override func layoutSubviews() {
         super.layoutSubviews()
-
         guard let image,
               bounds.width > 0, bounds.height > 0,
               image.size.width > 0, image.size.height > 0 else { return }
 
-        // MARK: - Aspect Fit Rect | 원본 비율 기준으로 실제 이미지 표시 영역 계산
         let scale = min(bounds.width / image.size.width, bounds.height / image.size.height)
         let width = image.size.width * scale
         let height = image.size.height * scale
-
         let imageRect = CGRect(
             x: (bounds.width - width) / 2,
             y: (bounds.height - height) / 2,
@@ -210,13 +197,8 @@ private final class RoundedCouponImageView: UIImageView {
             height: height
         )
 
-        // MARK: - Rounded Image Mask | 이미지 실제 네 모서리만 둥글게 자르기
         roundedMask.frame = bounds
-        roundedMask.path = UIBezierPath(
-            roundedRect: imageRect,
-            cornerRadius: AppRadius.card
-        ).cgPath
-
+        roundedMask.path = UIBezierPath(roundedRect: imageRect, cornerRadius: AppRadius.card).cgPath
         layer.mask = roundedMask
     }
 }
