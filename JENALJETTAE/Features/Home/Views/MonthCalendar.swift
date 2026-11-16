@@ -26,7 +26,7 @@ private struct CalendarWeek: Identifiable {
 }
 
 private struct CalendarEventSegment: Identifiable {
-    let id: UUID
+    let id: String
     let title: String
     let startColumn: Int
     let endColumn: Int
@@ -402,7 +402,6 @@ struct MonthCalendar: View {
     }
 
     // MARK: - Week Event Lanes
-
     private func makeWeek(_ dates: [Date]) -> CalendarWeek {
         let firstDate = calendar.startOfDay(for: dates[0])
         let lastDate = calendar.startOfDay(for: dates[6])
@@ -427,7 +426,7 @@ struct MonthCalendar: View {
         .sorted { left, right in
             if left.isMultiDay != right.isMultiDay { return left.isMultiDay }
             if left.event.startDate != right.event.startDate { return left.event.startDate < right.event.startDate }
-            return left.event.id.uuidString < right.event.id.uuidString
+            return left.event.id < right.event.id
         }
 
         var occupied = Array(repeating: Array(repeating: false, count: 7), count: 2)
@@ -435,24 +434,57 @@ struct MonthCalendar: View {
         var hiddenCounts = Array(repeating: 0, count: 7)
 
         for candidate in candidates {
-            let columns = candidate.startColumn...candidate.endColumn
-            if let lane = (0..<2).first(where: { lane in columns.allSatisfy { !occupied[lane][$0] } }) {
-                for column in columns { occupied[lane][column] = true }
+            var segmentStart: Int?
+            var segmentLane: Int?
+
+            for column in candidate.startColumn...candidate.endColumn {
+                // 연속성을 위해 현재 줄을 우선 사용하되, 막히면 다른 빈 줄을 확인합니다.
+                let lane: Int? = segmentLane.flatMap { occupied[$0][column] ? nil : $0 }
+                    ?? (0..<2).first { !occupied[$0][column] }
+
+                // 줄이 바뀌거나 가려지면 이전까지의 막대를 확정합니다.
+                if lane != segmentLane {
+                    if let segmentStart, let segmentLane {
+                        segments.append(CalendarEventSegment(
+                            id: "\(candidate.event.id.uuidString)-\(segmentStart)-\(segmentLane)",
+                            title: candidate.event.title,
+                            startColumn: segmentStart,
+                            endColumn: column - 1,
+                            lane: segmentLane,
+                            isMultiDay: candidate.isMultiDay,
+                            continuesBefore: candidate.continuesBefore || segmentStart > candidate.startColumn,
+                            continuesAfter: true
+                        ))
+                    }
+
+                    segmentStart = lane == nil ? nil : column
+                    segmentLane = lane
+                }
+
+                if let lane {
+                    occupied[lane][column] = true
+                } else {
+                    // 날짜 전체가 아닌 실제로 표시하지 못한 날짜만 +N개로 셉니다.
+                    hiddenCounts[column] += 1
+                }
+            }
+
+            // 이번 주에서 마지막으로 이어진 막대를 추가합니다.
+            if let segmentStart, let segmentLane {
                 segments.append(CalendarEventSegment(
-                    id: candidate.event.id,
+                    id: "\(candidate.event.id.uuidString)-\(segmentStart)-\(segmentLane)",
                     title: candidate.event.title,
-                    startColumn: candidate.startColumn,
+                    startColumn: segmentStart,
                     endColumn: candidate.endColumn,
-                    lane: lane,
+                    lane: segmentLane,
                     isMultiDay: candidate.isMultiDay,
-                    continuesBefore: candidate.continuesBefore,
+                    continuesBefore: candidate.continuesBefore || segmentStart > candidate.startColumn,
                     continuesAfter: candidate.continuesAfter
                 ))
-            } else {
-                for column in columns { hiddenCounts[column] += 1 }
             }
         }
 
         return CalendarWeek(dates: dates, segments: segments, hiddenCounts: hiddenCounts)
     }
+
 }

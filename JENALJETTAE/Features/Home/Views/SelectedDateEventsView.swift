@@ -7,12 +7,11 @@
 
 import SwiftUI
 
-// MARK: - Selected Date Events
-
+// MARK: - Selected Date Events | 선택한 날짜의 항목 목록
 struct SelectedDateEventsView: View {
     let selectedDate: Date
     let events: [HomeSampleEvent]
-    let onEventTap: () -> Void
+    let onEventTap: (UUID) -> Void
 
     private var selectedDateTitle: String {
         let formatter = DateFormatter()
@@ -50,7 +49,7 @@ struct SelectedDateEventsView: View {
                         statusLabel: event.statusLabel,
                         statusTone: Calendar.current.isDateInToday(event.date) ? .attention : .neutral
                     ) {
-                        onEventTap()
+                        onEventTap(event.id)
                     }
                 }
             }
@@ -58,8 +57,7 @@ struct SelectedDateEventsView: View {
     }
 }
 
-// MARK: - Sample Event
-
+// MARK: - Home Sample Event | 홈 카드 UI용 모델
 struct HomeSampleEvent: Identifiable {
     let id: UUID
     let date: Date
