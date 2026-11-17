@@ -10,6 +10,9 @@ import PhotosUI
 import UIKit
 // MARK: - Subscription Manual Entry | 정기 구독 직접 등록 화면
 struct SubscriptionManualEntryView: View {
+    let editingItem: ManagedItem?
+    init(editingItem: ManagedItem? = nil) { self.editingItem = editingItem }
+    @State private var hasAppliedEditingItem = false
     @Environment(\.saveSubscriptionUseCase) private var saveSubscriptionUseCase
     @Environment(\.onSubscriptionSaved) private var onSubscriptionSaved
     @StateObject private var viewModel = SubscriptionRegistrationViewModel()
@@ -292,9 +295,9 @@ struct SubscriptionManualEntryView: View {
                 Button {
                     hideKeyboard()
                     guard let saveSubscriptionUseCase, let onSubscriptionSaved else { return }
-                    if let item = viewModel.save(using: saveSubscriptionUseCase) { onSubscriptionSaved(item) }
+                    if let item = viewModel.save(using: saveSubscriptionUseCase, editingItem: editingItem) { onSubscriptionSaved(item) }
                 } label: {
-                    Text(viewModel.isSaving ? "저장 중..." : "정기 구독 저장")
+                    Text(viewModel.isSaving ? "저장 중..." : (editingItem == nil ? "정기 구독 저장" : "수정 완료"))
                         .font(.headline)
                         .foregroundStyle(canSubmit ? AppColor.onPrimary : AppColor.textSecondary)
                         .frame(maxWidth: .infinity)
@@ -316,7 +319,12 @@ struct SubscriptionManualEntryView: View {
         }
         .scrollDismissesKeyboard(.never)
         .background(AppColor.background.ignoresSafeArea())
-        .navigationTitle("정기 구독 등록")
+        .navigationTitle(editingItem == nil ? "정기 구독 등록" : "정기 구독 수정")
+        .onAppear {
+            guard !hasAppliedEditingItem, let editingItem else { return }
+            hasAppliedEditingItem = true
+            viewModel.apply(editingItem: editingItem)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedPhoto) {
             guard let selectedPhoto else { return }

@@ -11,6 +11,9 @@ import UIKit
 
 // MARK: - Pass Manual Entry | 이용권 직접 입력 및 저장
 struct PassManualEntryView: View {
+    let editingItem: ManagedItem?
+    init(editingItem: ManagedItem? = nil) { self.editingItem = editingItem }
+    @State private var hasAppliedEditingItem = false
     // MARK: - Dependencies | 이용권 저장 기능 및 저장 후 홈 갱신
     @Environment(\.savePassUseCase) private var savePassUseCase
     @Environment(\.onPassSaved) private var onPassSaved
@@ -182,9 +185,9 @@ struct PassManualEntryView: View {
                 Button {
                     hideKeyboard()
                     guard let savePassUseCase, let onPassSaved else { return }
-                    if let savedItem = viewModel.savePass(using: savePassUseCase) { onPassSaved(savedItem) }
+                    if let savedItem = viewModel.savePass(using: savePassUseCase, editingItem: editingItem) { onPassSaved(savedItem) }
                 } label: {
-                    Text(viewModel.isSaving ? "저장 중..." : "이용권 저장")
+                    Text(viewModel.isSaving ? "저장 중..." : (editingItem == nil ? "이용권 저장" : "수정 완료"))
                         .font(.headline)
                         .foregroundStyle(canSubmit ? AppColor.onPrimary : AppColor.textSecondary)
                         .frame(maxWidth: .infinity)
@@ -213,7 +216,12 @@ struct PassManualEntryView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { hideKeyboard() }
         }
-        .navigationTitle("이용권 등록")
+        .navigationTitle(editingItem == nil ? "이용권 등록" : "이용권 수정")
+        .onAppear {
+            guard !hasAppliedEditingItem, let editingItem else { return }
+            hasAppliedEditingItem = true
+            viewModel.apply(editingItem: editingItem)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedPhoto) {
             guard let selectedPhoto else { return }

@@ -39,17 +39,19 @@ struct SaveCouponUseCase {
         expiryDate: Date?,
         couponNumber: String,
         memo: String,
-        imageData: Data? = nil
+        imageData: Data? = nil,
+        editingItem: ManagedItem? = nil
     ) throws -> ManagedItem {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { throw SaveCouponError.emptyTitle }
         guard let expiryDate else { throw SaveCouponError.missingExpiryDate }
 
         let item = ManagedItem(
+            id: editingItem?.id ?? UUID(),
             type: .coupon,
             title: trimmedTitle,
             detail: brand.trimmingCharacters(in: .whitespacesAndNewlines),
-            startDate: Calendar.current.startOfDay(for: Date()),
+            startDate: editingItem?.startDate ?? Calendar.current.startOfDay(for: Date()),
             endDate: Calendar.current.startOfDay(for: expiryDate),
             couponNumber: optionalText(couponNumber),
             memo: optionalText(memo),

@@ -10,11 +10,20 @@ import UIKit
 
 // MARK: - Managed Item Detail View | 포인트 카드형 상세 화면
 struct ManagedItemDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: ManagedItemDetailViewModel
+    private let repository: any ManagedItemRepository
+    private let onItemChanged: () -> Void
+    @State private var showsEditScreen = false
+    @State private var showsDeleteConfirmation = false
+    @State private var showsDeleteError = false
+    @State private var deleteErrorMessage = ""
     @State private var showsImagePreview = false
     @State private var showsCopyNotice = false
 
-    init(itemID: UUID, repository: any ManagedItemRepository) {
+    init(itemID: UUID, repository: any ManagedItemRepository, onItemChanged: @escaping () -> Void = {}) {
+        self.repository = repository
+        self.onItemChanged = onItemChanged
         _viewModel = StateObject(wrappedValue: ManagedItemDetailViewModel(itemID: itemID, repository: repository))
     }
 
@@ -35,6 +44,53 @@ struct ManagedItemDetailView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle("상세 정보")
         .navigationBarTitleDisplayMode(.inline)
+        // MARK: - Edit & Delete | 기존 상세화면 상단 액션
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if viewModel.item != nil {
+                    Menu {
+                        Button { showsEditScreen = true } label: { Label("수정", systemImage: "pencil") }
+                        Button(role: .destructive) { showsDeleteConfirmation = true } label: { Label("삭제", systemImage: "trash") }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .foregroundStyle(AppColor.textPrimary)
+                    }
+                    .accessibilityLabel("항목 관리")
+                }
+            }
+        }
+        // MARK: - Edit Registration | 유형별 기존 등록 화면을 수정 모드로 재사용
+        .sheet(isPresented: $showsEditScreen) {
+            if let item = viewModel.item {
+                NavigationStack {
+                    editRegistrationView(for: item)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("취소") { showsEditScreen = false }
+                            }
+                        }
+                }
+                .environment(\.saveCouponUseCase, SaveCouponUseCase(repository: repository))
+                .environment(\.onCouponSaved, { _ in finishEditing() })
+                .environment(\.savePassUseCase, SavePassUseCase(repository: repository))
+                .environment(\.onPassSaved, { _ in finishEditing() })
+                .environment(\.saveSubscriptionUseCase, SaveSubscriptionUseCase(repository: repository))
+                .environment(\.onSubscriptionSaved, { _ in finishEditing() })
+                .environment(\.saveScheduleUseCase, SaveScheduleUseCase(repository: repository))
+                .environment(\.onScheduleSaved, { _ in finishEditing() })
+            }
+        }
+        .alert("항목을 삭제할까요?", isPresented: $showsDeleteConfirmation) {
+            Button("삭제", role: .destructive) { deleteCurrentItem() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("삭제한 항목은 복구할 수 없어요.")
+        }
+        .alert("삭제할 수 없어요", isPresented: $showsDeleteError) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(deleteErrorMessage)
+        }
         .onAppear { viewModel.load() }
         .fullScreenCover(isPresented: $showsImagePreview) {
             if let data = viewModel.item?.imageData, let image = UIImage(data: data) {
@@ -43,6 +99,39 @@ struct ManagedItemDetailView: View {
         }
         .alert("번호를 복사했어요", isPresented: $showsCopyNotice) {
             Button("확인", role: .cancel) {}
+        }
+    }
+
+    // MARK: - Edit Destination | 등록 UI를 그대로 사용하되 원본 데이터를 전달
+    @ViewBuilder
+    private func editRegistrationView(for item: ManagedItem) -> some View {
+        switch item.type {
+        case .coupon: CouponManualEntryView(editingItem: item)
+        case .pass: PassManualEntryView(editingItem: item)
+        case .subscription: SubscriptionManualEntryView(editingItem: item)
+        case .schedule: ScheduleManualEntryView(editingItem: item)
+        }
+    }
+
+    // MARK: - Edit Complete | 상세 데이터와 홈 목록 새로고침
+    @MainActor
+    private func finishEditing() {
+        viewModel.load()
+        onItemChanged()
+        showsEditScreen = false
+    }
+
+    // MARK: - Delete Item | 저장소 삭제 성공 후 홈으로 복귀
+    @MainActor
+    private func deleteCurrentItem() {
+        guard let item = viewModel.item else { return }
+        do {
+            try repository.deleteItem(id: item.id)
+            onItemChanged()
+            dismiss()
+        } catch {
+            deleteErrorMessage = error.localizedDescription
+            showsDeleteError = true
         }
     }
 
@@ -110,7 +199,7 @@ struct ManagedItemDetailView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                     // MARK: - Title Badge | 공간이 좁으면 배지를 제목 아래에 표시
                     ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .center, spacing: AppSpacing.xSmall) {
+                        HStack(alignment: .center, spacing: AppSpacing.small) {
                             Text(item.title)
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundStyle(AppColor.textPrimary)
@@ -119,7 +208,7 @@ struct ManagedItemDetailView: View {
                             statusBadge(countdown.value)
                         }
 
-                        VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                             Text(item.title)
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundStyle(AppColor.textPrimary)
@@ -137,7 +226,7 @@ struct ManagedItemDetailView: View {
                 .padding(.leading, 16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 1)
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(AppColor.primary)
                         .frame(width: 5)
                 }
@@ -177,7 +266,7 @@ struct ManagedItemDetailView: View {
             .foregroundStyle(AppColor.primaryForeground)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(AppColor.primaryTint, in: RoundedRectangle(cornerRadius: 7))
     }

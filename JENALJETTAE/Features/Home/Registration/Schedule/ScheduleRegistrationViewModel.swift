@@ -43,6 +43,18 @@ final class ScheduleRegistrationViewModel: ObservableObject {
         !hasSaved
     }
 
+    // MARK: - Edit Item | 기존 일정의 선택 입력값까지 복원
+    func apply(editingItem item: ManagedItem) {
+        guard item.type == .schedule else { return }
+        title = item.title
+        place = item.detail
+        startDate = item.startDate
+        endDate = item.endDate ?? item.startDate
+        timeMinutes = item.scheduleTimeMinutes
+        memo = item.memo ?? ""
+        imageData = item.imageData
+    }
+
     // MARK: - Image | 이미지 변경 및 삭제
     func setImage(_ data: Data) { imageData = data }
     func removeImage() { imageData = nil }
@@ -51,7 +63,7 @@ final class ScheduleRegistrationViewModel: ObservableObject {
     func removeTime() { timeMinutes = nil }
 
     // MARK: - Save | UseCase를 통한 일정 저장
-    func save(using useCase: SaveScheduleUseCase) -> ManagedItem? {
+    func save(using useCase: SaveScheduleUseCase, editingItem: ManagedItem? = nil) -> ManagedItem? {
         guard canSave else { return nil }
 
         isSaving = true
@@ -67,7 +79,8 @@ final class ScheduleRegistrationViewModel: ObservableObject {
                     timeMinutes: timeMinutes,
                     memo: memo,
                     imageData: imageData
-                )
+                ),
+                editingItem: editingItem
             )
 
             hasSaved = true

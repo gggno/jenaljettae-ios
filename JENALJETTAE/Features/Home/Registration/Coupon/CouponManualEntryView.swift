@@ -14,6 +14,7 @@ import UIKit
 struct CouponManualEntryView: View {
     let initialDraft: CouponDraft?
     let initialImageData: Data?
+    let editingItem: ManagedItem?
     @Environment(\.saveCouponUseCase) private var saveCouponUseCase
     @Environment(\.onCouponSaved) private var onCouponSaved
     @StateObject private var viewModel = CouponRegistrationViewModel()
@@ -33,9 +34,10 @@ struct CouponManualEntryView: View {
     @FocusState private var isMemoFocused: Bool
 
     // MARK: - Initialization | AI 분석 결과와 원본 이미지 전달받기
-    init(initialDraft: CouponDraft? = nil, initialImageData: Data? = nil) {
+    init(initialDraft: CouponDraft? = nil, initialImageData: Data? = nil, editingItem: ManagedItem? = nil) {
         self.initialDraft = initialDraft
         self.initialImageData = initialImageData
+        self.editingItem = editingItem
     }
 
     // MARK: - Save Validation | 사진 로딩 중 저장 방지 및 기존 필수값 확인
@@ -293,11 +295,11 @@ struct CouponManualEntryView: View {
                     Button {
                         hideKeyboard()
                         guard let saveCouponUseCase, let onCouponSaved else { return }
-                        if let savedItem = viewModel.saveCoupon(using: saveCouponUseCase) {
+                        if let savedItem = viewModel.saveCoupon(using: saveCouponUseCase, editingItem: editingItem) {
                             onCouponSaved(savedItem)
                         }
                     } label: {
-                        Text(viewModel.isSaving ? "저장 중..." : "쿠폰 저장")
+                        Text(viewModel.isSaving ? "저장 중..." : (editingItem == nil ? "쿠폰 저장" : "수정 완료"))
                             .font(.headline)
                             .foregroundStyle(canSubmit ? AppColor.onPrimary : AppColor.textSecondary)
                             .frame(maxWidth: .infinity)
@@ -350,15 +352,18 @@ struct CouponManualEntryView: View {
         .onAppear {
             guard !hasAppliedInitialData else { return }
             hasAppliedInitialData = true
-            if let initialDraft {
-                viewModel.apply(draft: initialDraft)
-                if let expiryDate = initialDraft.expiryDate { pickerDate = expiryDate }
-            }
-            if let initialImageData {
-                viewModel.setImage(initialImageData)
+            if let editingItem {
+                viewModel.apply(editingItem: editingItem)
+                pickerDate = editingItem.endDate ?? editingItem.startDate
+            } else {
+                if let initialDraft {
+                    viewModel.apply(draft: initialDraft)
+                    if let expiryDate = initialDraft.expiryDate { pickerDate = expiryDate }
+                }
+                if let initialImageData { viewModel.setImage(initialImageData) }
             }
         }
-        .navigationTitle("쿠폰 등록")
+        .navigationTitle(editingItem == nil ? "쿠폰 등록" : "쿠폰 수정")
         .navigationBarTitleDisplayMode(.inline)
 
         // MARK: - Photo Loading | 사진 선택 변경 시 자동 로딩하고 화면 이탈 시 취소

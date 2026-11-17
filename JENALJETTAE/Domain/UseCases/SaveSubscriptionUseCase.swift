@@ -30,7 +30,7 @@ struct SaveSubscriptionUseCase {
     init(repository: any ManagedItemRepository) { self.repository = repository }
 
     // MARK: - Execute | 구독 정보 생성 후 SwiftData에 저장
-    func execute(draft: SubscriptionDraft) throws -> ManagedItem {
+    func execute(draft: SubscriptionDraft, editingItem: ManagedItem? = nil) throws -> ManagedItem {
         let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { throw SaveSubscriptionError.emptyTitle }
         guard let subscriptionStartDate = draft.subscriptionStartDate else { throw SaveSubscriptionError.missingSubscriptionStartDate }
@@ -38,6 +38,7 @@ struct SaveSubscriptionUseCase {
 
         // 구독에서 startDate는 반복 계산 기준인 '구독 시작일', endDate는 미사용
         let item = ManagedItem(
+            id: editingItem?.id ?? UUID(),
             type: .subscription,
             title: title,
             startDate: Calendar.current.startOfDay(for: subscriptionStartDate),

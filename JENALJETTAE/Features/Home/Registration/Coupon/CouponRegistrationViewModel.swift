@@ -36,6 +36,17 @@ final class CouponRegistrationViewModel: ObservableObject {
         expiryDate = draft.expiryDate
     }
 
+    // MARK: - Edit Item | 수정할 쿠폰의 기존 데이터 적용
+    func apply(editingItem item: ManagedItem) {
+        guard item.type == .coupon else { return }
+        couponTitle = item.title
+        brand = item.detail
+        couponNumber = item.couponNumber ?? ""
+        memo = item.memo ?? ""
+        expiryDate = item.endDate ?? item.startDate
+        imageData = item.imageData
+    }
+
     // MARK: - Set Image | 쿠폰 이미지 추가 또는 변경
     func setImage(_ data: Data) {
         imageData = data
@@ -53,7 +64,7 @@ final class CouponRegistrationViewModel: ObservableObject {
     }
 
     // MARK: - Save Coupon | 최종 쿠폰 정보와 이미지 데이터를 UseCase로 전달
-    func saveCoupon(using useCase: SaveCouponUseCase) -> ManagedItem? {
+    func saveCoupon(using useCase: SaveCouponUseCase, editingItem: ManagedItem? = nil) -> ManagedItem? {
         guard canSave else { return nil }
 
         isSaving = true
@@ -66,7 +77,8 @@ final class CouponRegistrationViewModel: ObservableObject {
                 expiryDate: expiryDate,
                 couponNumber: couponNumber,
                 memo: memo,
-                imageData: imageData
+                imageData: imageData,
+                editingItem: editingItem
             )
             hasSaved = true
             return item

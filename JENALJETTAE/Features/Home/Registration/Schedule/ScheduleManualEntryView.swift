@@ -11,6 +11,9 @@ import UIKit
 
 // MARK: - Schedule Manual Entry | 하루 일정·기간 일정 등록
 struct ScheduleManualEntryView: View {
+    let editingItem: ManagedItem?
+    init(editingItem: ManagedItem? = nil) { self.editingItem = editingItem }
+    @State private var hasAppliedEditingItem = false
 
     // MARK: - Dependencies | 일정 저장 의존성
     @Environment(\.saveScheduleUseCase) private var saveScheduleUseCase
@@ -352,11 +355,11 @@ struct ScheduleManualEntryView: View {
                     guard let saveScheduleUseCase,
                           let onScheduleSaved else { return }
 
-                    if let item = viewModel.save(using: saveScheduleUseCase) {
+                    if let item = viewModel.save(using: saveScheduleUseCase, editingItem: editingItem) {
                         onScheduleSaved(item)
                     }
                 } label: {
-                    Text(viewModel.isSaving ? "저장 중..." : "일정 저장")
+                    Text(viewModel.isSaving ? "저장 중..." : (editingItem == nil ? "일정 저장" : "수정 완료"))
                         .font(.headline)
                         .foregroundStyle(
                             canSubmit ? AppColor.onPrimary : AppColor.textSecondary
@@ -384,7 +387,12 @@ struct ScheduleManualEntryView: View {
         }
         .scrollDismissesKeyboard(.never)
         .background(AppColor.background.ignoresSafeArea())
-        .navigationTitle("일정 등록")
+        .navigationTitle(editingItem == nil ? "일정 등록" : "일정 수정")
+        .onAppear {
+            guard !hasAppliedEditingItem, let editingItem else { return }
+            hasAppliedEditingItem = true
+            viewModel.apply(editingItem: editingItem)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedPhoto) {
             guard let selectedPhoto else { return }

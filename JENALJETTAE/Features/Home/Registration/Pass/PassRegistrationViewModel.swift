@@ -37,12 +37,24 @@ final class PassRegistrationViewModel: ObservableObject {
         startDate != nil && endDate != nil && !isInvalidDateRange && !isSaving && !hasSaved
     }
 
+    // MARK: - Edit Item | 기존 이용권 정보 적용
+    func apply(editingItem item: ManagedItem) {
+        guard item.type == .pass else { return }
+        passTitle = item.title
+        place = item.detail
+        startDate = item.startDate
+        endDate = item.endDate ?? item.startDate
+        passNumber = item.couponNumber ?? ""
+        memo = item.memo ?? ""
+        imageData = item.imageData
+    }
+
     // MARK: - Image | 이미지 선택·제거
     func setImage(_ data: Data) { imageData = data }
     func removeImage() { imageData = nil }
 
     // MARK: - Save | 입력값을 PassDraft로 변환하여 저장
-    func savePass(using useCase: SavePassUseCase) -> ManagedItem? {
+    func savePass(using useCase: SavePassUseCase, editingItem: ManagedItem? = nil) -> ManagedItem? {
         guard canSave else { return nil }
 
         isSaving = true
@@ -59,7 +71,7 @@ final class PassRegistrationViewModel: ObservableObject {
         )
 
         do {
-            let item = try useCase.execute(draft: draft)
+            let item = try useCase.execute(draft: draft, editingItem: editingItem)
             hasSaved = true
             return item
         } catch {

@@ -38,12 +38,23 @@ final class SubscriptionRegistrationViewModel: ObservableObject {
         subscriptionStartDate != nil && !isInvalidAmount && !isSaving && !hasSaved
     }
 
+    // MARK: - Edit Item | 기존 구독 시작일·주기·금액 복원
+    func apply(editingItem item: ManagedItem) {
+        guard item.type == .subscription else { return }
+        title = item.title
+        cycle = item.subscriptionCycle ?? .monthly
+        subscriptionStartDate = item.startDate
+        amountText = item.subscriptionAmount.map(String.init) ?? ""
+        memo = item.memo ?? ""
+        imageData = item.imageData
+    }
+
     // MARK: - Image | 공통 이미지 컴포넌트와 연결
     func setImage(_ data: Data) { imageData = data }
     func removeImage() { imageData = nil }
 
     // MARK: - Save | Draft 생성 후 UseCase에 위임
-    func save(using useCase: SaveSubscriptionUseCase) -> ManagedItem? {
+    func save(using useCase: SaveSubscriptionUseCase, editingItem: ManagedItem? = nil) -> ManagedItem? {
         guard canSave else { return nil }
         isSaving = true
         defer { isSaving = false }
@@ -58,7 +69,7 @@ final class SubscriptionRegistrationViewModel: ObservableObject {
         )
 
         do {
-            let item = try useCase.execute(draft: draft)
+            let item = try useCase.execute(draft: draft, editingItem: editingItem)
             hasSaved = true
             return item
         } catch {

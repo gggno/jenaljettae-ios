@@ -36,7 +36,7 @@ struct SaveScheduleUseCase {
     }
 
     // MARK: - Execute | 입력값 검증 및 일정 저장
-    func execute(draft: ScheduleDraft) throws -> ManagedItem {
+    func execute(draft: ScheduleDraft, editingItem: ManagedItem? = nil) throws -> ManagedItem {
         let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !title.isEmpty else { throw SaveScheduleError.emptyTitle }
@@ -55,6 +55,7 @@ struct SaveScheduleUseCase {
 
         // MARK: - Create Item | 공통 ManagedItem 사용
         let item = ManagedItem(
+            id: editingItem?.id ?? UUID(),
             type: .schedule,
             title: title,
             detail: draft.place.trimmingCharacters(in: .whitespacesAndNewlines),

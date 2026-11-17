@@ -34,6 +34,9 @@ struct ManagedItem: Identifiable {
     // MARK: - Schedule Details | 시작 시간(00:00부터 분 단위)
     let scheduleTimeMinutes: Int?
 
+    // MARK: - Created At | 최초 등록 시각
+    let createdAt: Date?
+
     init(
         id: UUID = UUID(),
         type: ManagedItemType,
@@ -46,7 +49,8 @@ struct ManagedItem: Identifiable {
         imageData: Data? = nil,
         subscriptionCycle: SubscriptionCycle? = nil,
         subscriptionAmount: Int? = nil,
-        scheduleTimeMinutes: Int? = nil
+        scheduleTimeMinutes: Int? = nil,
+        createdAt: Date? = nil
     ) {
         self.id = id
         self.type = type
@@ -60,5 +64,6 @@ struct ManagedItem: Identifiable {
         self.subscriptionCycle = subscriptionCycle
         self.subscriptionAmount = subscriptionAmount
         self.scheduleTimeMinutes = scheduleTimeMinutes
+        self.createdAt = createdAt
     }
 }

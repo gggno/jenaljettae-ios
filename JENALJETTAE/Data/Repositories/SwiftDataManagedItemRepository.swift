@@ -40,12 +40,13 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
                 imageData: entity.imageData,
                 subscriptionCycle: entity.subscriptionCycle.flatMap(SubscriptionCycle.init(rawValue:)),
                 subscriptionAmount: entity.subscriptionAmount,
-                scheduleTimeMinutes: entity.scheduleTimeMinutes
+                scheduleTimeMinutes: entity.scheduleTimeMinutes,
+                createdAt: entity.createdAt
             )
         }
     }
 
-    // MARK: - Save | ID 기준 신규 저장 또는 수정
+    // MARK: - Save | 최초 저장 시 생성일 기록, 수정 시 유지
     func saveItem(_ item: ManagedItem) throws {
         let id = item.id
         let descriptor = FetchDescriptor<ManagedItemEntity>(
@@ -64,23 +65,26 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
             entity.subscriptionCycle = item.subscriptionCycle?.rawValue
             entity.subscriptionAmount = item.subscriptionAmount
             entity.scheduleTimeMinutes = item.scheduleTimeMinutes
+
+            // 최초 등록일은 변경하지 않음
         } else {
-            modelContext.insert(
-                ManagedItemEntity(
-                    id: item.id,
-                    type: item.type.rawValue,
-                    title: item.title,
-                    detail: item.detail,
-                    startDate: item.startDate,
-                    endDate: item.endDate,
-                    couponNumber: item.couponNumber,
-                    memo: item.memo,
-                    imageData: item.imageData,
-                    subscriptionCycle: item.subscriptionCycle?.rawValue,
-                    subscriptionAmount: item.subscriptionAmount,
-                    scheduleTimeMinutes: item.scheduleTimeMinutes
-                )
+            let entity = ManagedItemEntity(
+                id: item.id,
+                type: item.type.rawValue,
+                title: item.title,
+                detail: item.detail,
+                startDate: item.startDate,
+                endDate: item.endDate,
+                couponNumber: item.couponNumber,
+                memo: item.memo,
+                imageData: item.imageData,
+                subscriptionCycle: item.subscriptionCycle?.rawValue,
+                subscriptionAmount: item.subscriptionAmount,
+                scheduleTimeMinutes: item.scheduleTimeMinutes
             )
+
+            entity.createdAt = item.createdAt ?? Date()
+            modelContext.insert(entity)
         }
 
         try modelContext.save()
@@ -88,6 +92,7 @@ final class SwiftDataManagedItemRepository: ManagedItemRepository {
 
     // MARK: - Delete | ID로 데이터 삭제
     func deleteItem(id: UUID) throws {
+        let id = id
         let descriptor = FetchDescriptor<ManagedItemEntity>(
             predicate: #Predicate { $0.id == id }
         )

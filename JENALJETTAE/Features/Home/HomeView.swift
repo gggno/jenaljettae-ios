@@ -92,11 +92,9 @@ struct HomeView: View {
                 .environment(\.saveSubscriptionUseCase, SaveSubscriptionUseCase(repository: repository))
                 .environment(\.onSubscriptionSaved, { savedItem in
                     viewModel.reload()
-
                     // MARK: - Subscription Navigation | 시작일 또는 다음 예정 결제일
                     let today = Calendar.current.startOfDay(for: Date())
                     let startDate = Calendar.current.startOfDay(for: savedItem.startDate)
-
                     if startDate >= today {
                         viewModel.pickDate(startDate)
                     } else if let nextBillingDate = savedItem.subscriptionCycle?
@@ -105,7 +103,6 @@ struct HomeView: View {
                     } else {
                         viewModel.pickDate(startDate)
                     }
-
                     showsRegistrationTypeSelection = false
                 })
                 .environment(\.saveScheduleUseCase, SaveScheduleUseCase(repository: repository))
@@ -119,9 +116,10 @@ struct HomeView: View {
         // MARK: - Item Detail | 선택한 항목을 ID로 조회하여 표시
         .navigationDestination(isPresented: $showsDetail) {
             if let selectedDetailID {
-                ManagedItemDetailView(itemID: selectedDetailID, repository: repository)
+                ManagedItemDetailView(itemID: selectedDetailID, repository: repository, onItemChanged: { viewModel.reload() })
             }
         }
+        // MARK: - Tab Bar Visibility | 상세화면 이동 상태를 홈에서 관리
         .toolbar(showsDetail ? .hidden : .visible, for: .tabBar)
     }
 

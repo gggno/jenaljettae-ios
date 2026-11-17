@@ -38,7 +38,7 @@ struct SavePassUseCase {
     }
 
     // MARK: - Execute | 필수값 검증 후 이용권 생성 및 저장
-    func execute(draft: PassDraft) throws -> ManagedItem {
+    func execute(draft: PassDraft, editingItem: ManagedItem? = nil) throws -> ManagedItem {
         let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !title.isEmpty else { throw SavePassError.emptyTitle }
@@ -53,6 +53,7 @@ struct SavePassUseCase {
 
         // MARK: - Managed Item | 기존 공통 모델을 활용해 이용권 생성
         let item = ManagedItem(
+            id: editingItem?.id ?? UUID(),
             type: .pass,
             title: title,
             detail: draft.place.trimmingCharacters(in: .whitespacesAndNewlines),
