@@ -15,13 +15,19 @@ private enum MainTab: Hashable {
     case settings
 }
 
-// MARK: - Main Tab View | 홈·보관함에 실제 SwiftData Repository 주입
+// MARK: - Main Tab View | 각 화면에 Repository 주입 및 앱 전체 테마 적용
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
+    @AppStorage(UserDefaultsThemeRepository.storageKey) private var selectedTheme = AppThemeMode.system.rawValue
     @State private var selectedTab: MainTab = .home
+
+    private var appColorScheme: ColorScheme? {
+        (AppThemeMode(rawValue: selectedTheme) ?? .system).colorScheme
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
+
             // MARK: - Home | 기존 홈 화면 유지
             NavigationStack {
                 HomeView(repository: SwiftDataManagedItemRepository(modelContext: modelContext))
@@ -32,7 +38,7 @@ struct MainTabView: View {
             }
             .tag(MainTab.home)
 
-            // MARK: - Library | Repository와 상세 이동용 NavigationStack 연결
+            // MARK: - Library | Repository 및 상세 화면 이동
             NavigationStack {
                 LibraryView(repository: SwiftDataManagedItemRepository(modelContext: modelContext))
             }
@@ -42,27 +48,26 @@ struct MainTabView: View {
             }
             .tag(MainTab.library)
 
-            // MARK: - Settings | 설정 탭 유지
-            SettingsView()
-                .tabItem {
-                    Image(AppIcon.settings).renderingMode(.template)
-                    Text("설정")
-                }
-                .tag(MainTab.settings)
+            // MARK: - Settings | Repository로 설정 화면 생성
+            NavigationStack {
+                SettingsView(
+                    themeRepository: UserDefaultsThemeRepository(),
+                    notificationPermissionRepository: SystemNotificationPermissionRepository()
+                )
+            }
+            .tabItem {
+                Image(AppIcon.settings).renderingMode(.template)
+                Text("설정")
+            }
+            .tag(MainTab.settings)
         }
         .tint(AppColor.primaryForeground)
+        .preferredColorScheme(appColorScheme)
     }
 }
 
-// MARK: - Preview | 메모리 저장소로 라이트·다크 모드 확인
-#Preview("Light") {
+// MARK: - Preview | 앱 메인 화면 미리보기
+#Preview {
     MainTabView()
         .modelContainer(for: ManagedItemEntity.self, inMemory: true)
-        .preferredColorScheme(.light)
-}
-
-#Preview("Dark") {
-    MainTabView()
-        .modelContainer(for: ManagedItemEntity.self, inMemory: true)
-        .preferredColorScheme(.dark)
 }

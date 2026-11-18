@@ -54,5 +54,12 @@ enum AppIcon {
     static let sort = "ic_jnt_sort"
     static let info = "ic_jnt_info"
     static let warning = "ic_jnt_warning"
+    
+    // MARK: - Settings Icons | 화면 테마 아이콘
+    static let theme = "ic_jnt_theme"
+    static let system = "ic_jnt_system"
+    static let light = "ic_jnt_light"
+    static let dark = "ic_jnt_dark"
+
 }
 import Foundation
